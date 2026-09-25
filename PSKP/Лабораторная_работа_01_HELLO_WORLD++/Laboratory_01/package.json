@@ -1,0 +1,20 @@
+{
+  "name": "Лабораторная_работа_01_HELLO_WORLD",
+  "version": "1.0.0",
+  "description": "Лабораторная работа 01: простые HTTP-серверы Node.js",
+  "main": "dist/01-02.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run start:01-02",
+    "prestart:01-02": "npm run build",
+    "start:01-02": "node dist/01-02.js",
+    "prestart:01-03": "npm run build",
+    "start:01-03": "node dist/01-03.js",
+    "test:postman": "npx --yes newman run postman/Laboratory-01.postman_collection.json"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.5.3"
+  },
+  "private": true
+}

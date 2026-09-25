@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="SPAA/SPAA.vcxproj" Id="f84c5460-2b00-41dc-a532-a884adf67cbf" />
+  <Project Path="SP_01/SP_01.vcxproj" Id="8497acc1-2a22-49aa-9ebc-f40be1e51230" />
+  <Project Path="SP_02/SP_02.vcxproj" Id="3935700f-ba4e-4679-a078-bcd9e7618fbc" />
+  <Project Path="SP_03/SP_03.vcxproj" Id="68f8c5f6-2a4a-4c3f-b685-fdeb36007d15" />
+  <Project Path="SP_04/SP_04.vcxproj" Id="0e1ce1de-0153-4526-aab3-2a704119d432" />
+  <Project Path="SP_05/SP_05.csproj" Id="868a3961-3094-40db-a207-da109b61fc21" />
+  <Project Path="SP_06/SP_06.csproj" Id="47661860-ac7b-4f4e-a1c4-5b8d07af19af" />
+  <Project Path="SP_07/SP_07.csproj" Id="91a2e722-65ef-4872-a7f8-daea0acd0868" />
+  <Project Path="SP_08/SP_08.csproj" Id="e6b32520-5e5e-442b-99d1-cbb3139b6eb3" />
+  <Project Path="SP_AA/SP_AA.vcxproj" Id="55736887-3380-468e-a02d-2dc249156d28" />
+</Solution>

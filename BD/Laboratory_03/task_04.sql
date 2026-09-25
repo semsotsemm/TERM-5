@@ -1,0 +1,24 @@
+-- Создание своего pdb --
+ALTER SESSION SET CONTAINER = CDB$ROOT;
+SHOW CON_NAME;
+
+SELECT name 
+    FROM v$datafile 
+    WHERE con_id = 2;
+
+CREATE PLUGGABLE DATABASE AAR_PDB
+    ADMIN USER admin_aar IDENTIFIED BY "12345678"
+    ROLES = (DBA)
+    FILE_NAME_CONVERT = (
+        '/opt/oracle/oradata/FREE/pdbseed/', 
+        '/opt/oracle/oradata/FREE/aar_pdb/'
+    );
+
+ALTER PLUGGABLE DATABASE AAR_PDB OPEN;
+
+SELECT  name, open_mode 
+    FROM v$pdbs 
+    WHERE name = 'AAR_PDB';
+    
+ALTER PLUGGABLE DATABASE AAR_PDB CLOSE;
+DROP PLUGGABLE DATABASE AAR_PDB INCLUDING DATAFILES;

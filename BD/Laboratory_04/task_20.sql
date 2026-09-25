@@ -1,0 +1,3 @@
+ALTER DATABASE BACKUP CONTROLFILE TO TRACE;
+
+SELECT value FROM v$diag_info WHERE name = 'Default Trace File';

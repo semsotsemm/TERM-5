@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ПСКП Лабораторная работа 4</title>
+    <style>
+        button{
+            width: 100px;
+            height: 50px;
+            margin-left:10px;
+            margin-right:10px;
+            border:none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        #btn-get{
+            background: lawngreen;
+        }
+        #btn-post{
+            background: yellow;
+        }
+        #btn-put{
+            background: mediumpurple;
+        }
+        #btn-delete{
+            background: red;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center">Работа с бд</h1>
+    <div style="text-align: center">
+        <button id="btn-get">GET</button>
+        <button id="btn-post">POST</button>
+        <button id="btn-put">PUT</button>
+        <button id="btn-delete">DELETE</button>
+    </div>
+
+    <div id="active-area"></div>
+    <div id="result"></div>
+    <script>
+        const active_area = document.getElementById("active-area");
+        const result_block = document.getElementById("result");
+
+        const ShowResult = (data) => {
+            result_block.innerText = JSON.stringify(data, null, 4);
+        };
+
+        document.getElementById('btn-get').onclick = () => {
+            active_area.style.display = "none";
+            fetch("/api/db")
+                .then(res => res.json())
+                .then(data => ShowResult(data))
+                .catch(err => console.error(err));
+        };
+
+        document.getElementById('btn-post').onclick = () => {
+            active_area.style.display = "block";
+            active_area.innerHTML = `
+            <h3>Добавить запись</h3>
+            Имя:
+            <br>
+            <input type="text" id="post-name">
+            <br>
+            <br>
+            Дата рождения:
+            <br>
+            <input type="text" id="post-bday" placeholder="DD.MM.YYYY">
+            <br>
+            <br>
+            <button class="action-btn" onclick="sendPost()">Отправить POST</button>
+        `;
+        };
+
+        document.getElementById('btn-put').onclick = () => {
+            active_area.style.display = "block";
+            active_area.innerHTML = `
+            <h3>Изменить запись</h3>
+            ID:
+            <br>
+            <input type="number" id="put-id">
+            <br>
+            <br>
+            Новое имя:
+            <br>
+            <input type="text" id="put-name">
+            <br>
+            <br>
+            Новая дата:
+            <br>
+            <input type="text" id="put-bday" placeholder="DD.MM.YYYY">
+            <br>
+            <br>
+            <button class="action-btn" onclick="sendPut()">Отправить PUT</button>
+        `;
+        };
+
+        document.getElementById('btn-delete').onclick = () => {
+            active_area.style.display = "block";
+            active_area.innerHTML = `
+            <h3>Удалить запись</h3>
+            ID для удаления:
+            <br>
+            <input type="number" id="del-id">
+            <br>
+            <br>
+            <button class="action-btn" onclick="sendDelete()">Отправить DELETE</button>
+        `;
+        };
+        function sendPost() {
+            const body = {
+                name: document.getElementById('post-name').value,
+                bday: document.getElementById('post-bday').value
+            };
+            fetch('/api/db', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+                .then(res => res.json())
+                .then(data => ShowResult(data));
+        }
+
+        function sendPut() {
+            const body = {
+                id: Number(document.getElementById('put-id').value),
+                name: document.getElementById('put-name').value,
+                bday: document.getElementById('put-bday').value
+            };
+            fetch('/api/db', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+                .then(res => res.json())
+                .then(data => ShowResult(data));
+        }
+
+        function sendDelete() {
+            const id = document.getElementById('del-id').value;
+            fetch(`/api/db?id=${id}`, {
+                method: 'DELETE'
+            })
+                .then(res => {
+                    if (res.status === 404) return ShowResult({ error: "Запись не найдена" });
+                    return res.json().then(data => ShowResult(data));
+                });
+        }
+
+    </script>
+</body>
+</html>

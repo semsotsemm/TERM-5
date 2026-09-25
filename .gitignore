@@ -67,3 +67,93 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Operating system and file manager metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE and editor state
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.opendb
+*.idb
+
+# Visual Studio, C++, and .NET generated output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[xX]64/
+[xX]86/
+ipch/
+*.iobj
+*.ipdb
+*.tlog
+*.lastbuildstate
+*.recipe
+*.FileListAbsolute.txt
+
+# Node.js / TypeScript dependencies and generated output
+node_modules/
+dist/
+coverage/
+.npm/
+.yarn/cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Unity-generated IDE project files (only inside the Unity coursework)
+/KMS/Laboratory_03++/Laboratory_03/*.csproj
+/KMS/Laboratory_03++/Laboratory_03/*.sln
+
+# VMware virtual machines used by the OS coursework.
+# Keep them locally, but never add their disks, runtime state, or configuration to Git.
+/OS/Laboratory_01/OS/
+
+# Other virtual machine and disk-image formats
+*.iso
+*.vmdk
+*.vdi
+*.vhd
+*.vhdx
+*.vmem
+*.vmsn
+*.vmss
+*.nvram
+*.scoreboard
+*.lck/
+
+# Microsoft Office temporary lock files
+~$*.docx
+~$*.xlsx
+~$*.pptx
+
+# Temporary files produced while unpacking/rendering a Word report
+/OKG/Laboratory_03/_source_docx/
+/OKG/Laboratory_03/_source_media_png/
+
+# Local environment files and private credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx

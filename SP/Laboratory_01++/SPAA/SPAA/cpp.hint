@@ -1,0 +1,2 @@
+#define SPAA_API __declspec(dllexport)
+#define SPAA_API __declspec(dllimport)

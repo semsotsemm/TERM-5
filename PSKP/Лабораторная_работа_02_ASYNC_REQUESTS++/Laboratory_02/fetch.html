@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Fetch</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #fio {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2a5;
+        }
+    </style>
+</head>
+<body>
+
+<h1>ФИО: <span id="fio">загрузка…</span></h1>
+
+<script>
+    fetch("http://localhost:5000/api/name")
+        .then(response =>
+        {
+            if (!response.ok)
+            {
+                throw new Error("HTTP " + response.status);
+            }
+            return response.text();
+        })
+        .then(text =>
+        {
+            document.getElementById("fio").textContent = text;
+        })
+        .catch(err =>
+        {
+            document.getElementById("fio").textContent = "Ошибка загрузки: " + err.message;
+        });
+</script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ПСКП Лабораторная работа 3</title>
+</head>
+<body>
+    <div id="result"></div>
+    <script>
+        async function GetFactorials()
+        {
+            const result_container = document.getElementById("result");
+            const start_time = Date.now();
+
+            for (let i = 0; i < 20; i++)
+            {
+                try
+                {
+                    const response = await fetch(`http://localhost:5000/fact?k=${i}`);
+                    const data = await response.json();
+
+                    const div = document.createElement("div");
+                    div.className = "result-line";
+                    const t = Date.now() - start_time;
+                    div.textContent = `${t}-${data.k}/${data.fact}`;
+
+                    result_container.appendChild(div);
+                }
+                catch(error)
+                {
+                    console.error(`Ошибка получения факториала для числа ${i}: ${error}`);
+                }
+            }
+        }
+        window.onload = GetFactorials;
+    </script>
+</body>
+</html>

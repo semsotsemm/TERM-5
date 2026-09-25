@@ -1,0 +1,31 @@
+Обычный пользователь
+Название подключения: AAR_LOCAL
+Hostname: localhost
+Port: 1521
+Service_name: FREEPDB1
+Username: AAR
+Password: AarLab2026
+Role: Default
+
+Администратор для создания табличных пространств
+Название подключения: SYSTEM_LOCAL
+Hostname: localhost
+Port: 1521
+Service_name: FREEPDB1
+Username: SYSTEM
+Password: Adm99a6bfd673f974cd7a716c2348d72d28d
+Role: Default
+
+Администратор SYS
+Название подключения: SYSTEM_LOCAL
+Hostname: localhost
+Port: 1521
+Service_name: FREEPDB1
+Username: SYS
+Password: Adm99a6bfd673f974cd7a716c2348d72d28d
+Role: Default
+
+SQL*Plus
+Команда запуска: sqlplus
+Вход обычным пользователем: sqlplus AAR@//localhost:1521/FREEPDB1
+Вход администратором: sqlplus SYSTEM@//localhost:1521/FREEPDB1

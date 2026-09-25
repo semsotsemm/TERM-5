@@ -1,0 +1,30 @@
+CREATE TABLESPACE AAR_QDATA 
+    DATAFILE 'aar_qdata01.dbf' 
+    SIZE 10M 
+    OFFLINE;
+COMMIT;
+
+
+ALTER TABLESPACE AAR_QDATA ONLINE;
+ALTER USER AARCORE QUOTA 2M ON TS_AAR;
+COMMIT;
+
+
+CREATE TABLE AAR_T1 (
+    id NUMBER,
+    info VARCHAR2(50)
+) TABLESPACE AAR_QDATA;
+COMMIT;
+
+
+INSERT INTO AAR_T1 (id, info) VALUES (1, '1');
+INSERT INTO AAR_T1 (id, info) VALUES (2, '2');
+INSERT INTO AAR_T1 (id, info) VALUES (3, '3');
+COMMIT;
+
+
+SELECT * FROM AAR_T1;
+
+SELECT table_name, tablespace_name 
+    FROM user_tables 
+    WHERE table_name = 'AAR_T1';

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>XMLHttpRequest</title>
+    <style>
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #fio {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2a5;
+        }
+    </style>
+</head>
+<body>
+
+<h1>ФИО: <span id="fio">загрузка…</span></h1>
+
+<script>
+    const xhr = new XMLHttpRequest();
+
+    xhr.open("GET", "http://localhost:5000/api/name", true);
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200)
+        {
+            document.getElementById("fio").textContent = xhr.responseText;
+        }
+        else if (xhr.readyState === 4)
+        {
+            document.getElementById("fio").textContent = "Ошибка загрузки: " + xhr.status;
+        }
+    };
+    xhr.send();
+</script>
+</body>
+</html>

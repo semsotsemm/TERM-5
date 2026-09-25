@@ -1,0 +1,16 @@
+CREATE TABLESPACE TS_AAR
+    DATAFILE 'TS AAR.dbf'
+    SIZE 7M
+    AUTOEXTEND ON NEXT 5M
+    MAXSIZE 10M;
+
+
+DROP TABLESPACE TS_AAR
+    INCLUDING CONTENTS 
+    AND DATAFILES
+    CASCADE CONSTRAINTS;
+    
+    
+SELECT tablespace_name
+    FROM dba_tablespaces
+    WHERE tablespace_name = 'TS_AAR';
