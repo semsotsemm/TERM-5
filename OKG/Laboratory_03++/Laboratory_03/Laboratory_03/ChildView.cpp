@@ -198,7 +198,6 @@ void CChildView::Paint()
         return;
     }
 
-    // Двойная буферизация убирает мерцание при изменении размера окна.
     HDC memory_dc = CreateCompatibleDC(window_dc);
     HBITMAP bitmap = CreateCompatibleBitmap(window_dc, client_rect.right, client_rect.bottom);
     HGDIOBJ old_bitmap = SelectObject(memory_dc, bitmap);

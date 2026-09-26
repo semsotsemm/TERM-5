@@ -9,8 +9,7 @@ using namespace std;
 HPEN CreateMyPen(const CMyPen& pen)
 {
     LOGBRUSH brush{ BS_SOLID, pen.PenColor, 0 };
-    DWORD style = PS_GEOMETRIC | static_cast<DWORD>(pen.PenStyle) |
-        PS_ENDCAP_ROUND | PS_JOIN_ROUND;
+    DWORD style = PS_GEOMETRIC | static_cast<DWORD>(pen.PenStyle) | PS_ENDCAP_ROUND | PS_JOIN_ROUND;
 
     return ExtCreatePen(style, max(1, pen.PenWidth), &brush, 0, nullptr);
 }
@@ -29,7 +28,6 @@ CMatrix SpaceToWindow(CRectD& rs, CRect& rw)
     double scale_x = static_cast<double>(rw.Width()) / world_width;
     double scale_y = -static_cast<double>(rw.Height()) / world_height;
 
-    // В MM_TEXT ось Y направлена вниз, поэтому scale_y отрицательный.
     result(0, 0) = scale_x;
     result(0, 2) = rw.left - scale_x * rs.left;
     result(1, 1) = scale_y;
@@ -50,11 +48,7 @@ void CPlot2D::SetParams(CMatrix& XX, CMatrix& YY, CRect& RWX)
     Y = YY;
     RW = RWX;
 
-    int count = min(X.Rows(), Y.Rows());
-    if (count == 0)
-    {
-        return;
-    }
+    int count = min(X.rows(), Y.rows());
 
     double max_x = 0.0;
     double max_y = 0.0;
@@ -73,7 +67,6 @@ void CPlot2D::SetParams(CMatrix& XX, CMatrix& YY, CRect& RWX)
         max_y = 1.0;
     }
 
-    // Симметричная область оставляет начало координат в центре графика.
     RS = CRectD(-max_x * 1.1, max_y * 1.1, max_x * 1.1, -max_y * 1.1);
     K = SpaceToWindow(RS, RW);
 }
@@ -108,8 +101,8 @@ void CPlot2D::SetShowAxes(bool value)
 void CPlot2D::Draw(CDC& dc, int Ind1, int Ind2)
 {
     HDC hdc = dc.GetSafeHdc();
-    int count = min(X.Rows(), Y.Rows());
-    if (hdc == nullptr || count == 0)
+    int count = min(X.rows(), Y.rows());
+    if (hdc == nullptr)
     {
         return;
     }

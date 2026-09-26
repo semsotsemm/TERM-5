@@ -4,16 +4,16 @@
 
 enum class TestMode
 {
-    F1,
-    F2,
-    F3
+    F1, 
+    F2, 
+    F3  
 };
 
 class CChildView
 {
 private:
-    HWND window_handle{};
-    TestMode current_test{ TestMode::F1 };
+    HWND window_handle{};                     
+    TestMode current_test{ TestMode::F1 };     
 
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
     LRESULT HandleMessage(UINT message, WPARAM wParam, LPARAM lParam);

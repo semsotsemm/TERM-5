@@ -121,7 +121,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ChildView.h" />
-    <ClInclude Include="Matrix.h" />
+    <ClInclude Include="CMatrix.h" />
     <ClInclude Include="Plot2D.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="WinTypes.h" />
@@ -129,7 +129,7 @@
   <ItemGroup>
     <ClCompile Include="ChildView.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Matrix.cpp" />
+    <ClCompile Include="CMatrix.cpp" />
     <ClCompile Include="Plot2D.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
