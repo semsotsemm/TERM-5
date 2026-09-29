@@ -1,7 +1,10 @@
 -- Подключится к созданному (з.4) pdb, создать свои объекты --
+ALTER SESSION SET CONTAINER = AAR_PDB;
+SHOW CON_NAME;
+
 CREATE TABLESPACE AAR_TS
-    DATAFILE '/opt/oracle/oradata/FREE/aar_pdb/aar_ts_01.dbf' 
-    SIZE 50M    
+    DATAFILE '/opt/oracle/oradata/FREE/aar_pdb/aar_ts_02.dbf' 
+    SIZE 50M
     AUTOEXTEND ON NEXT 10M;
     
 
@@ -24,7 +27,7 @@ ALTER USER U1_AAR_PDB QUOTA UNLIMITED ON AAR_TS;
 -- Проверка --
 SELECT tablespace_name, status, contents 
     FROM dba_tablespaces 
-    WHERE tablespace_name IN ('AAR_TS', 'AAR_TEMP_TS');
+    WHERE tablespace_name = 'AAR_TS';
 
 SELECT file_name, tablespace_name, bytes/1024/1024 AS size_mb, autoextensible 
     FROM dba_data_files 

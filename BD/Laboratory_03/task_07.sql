@@ -1,4 +1,8 @@
 -- Подключится  к пользователю PDB, создать таблицу, вставить значения. -- 
+
+ALTER SESSION SET CONTAINER = AAR_PDB;
+SHOW CON_NAME;
+
 CREATE TABLE AAR_table (
     id NUMBER PRIMARY KEY,
     item_name VARCHAR2(50),
@@ -12,8 +16,9 @@ INSERT INTO AAR_table (id, item_name, quantity) VALUES (3, 'Клавиатура
 COMMIT;
 
 SELECT username, default_tablespace, temporary_tablespace 
-FROM user_users;
+    FROM user_users;
 
-SELECT * FROM AAR_table;
+SELECT * 
+    FROM AAR_table;
 
 DROP TABLE AAR_table PURGE;

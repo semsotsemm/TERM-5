@@ -9,9 +9,6 @@
 
 using namespace std;
 
-const char* SERVER_IP = "127.0.0.1";
-const int SERVER_PORT = 2000;
-
 
 // Получение описания ошибки по ее коду.
 string SetErrorMessageText(string message_text, int error_code) {
@@ -226,24 +223,28 @@ int main()
         SOCKADDR_IN client_address;
         int client_address_size = sizeof(client_address);
 
+        int received_count = 0;
+
         while (true) 
         {
             int bytes_received = recvfrom(server_socket, receive_buffer, sizeof(receive_buffer) - 1, 0, (sockaddr*)&client_address, &client_address_size);
             if (bytes_received == SOCKET_ERROR)
             {
+                if (WSAGetLastError() == WSAECONNRESET) {
+                    continue;
+                }
                 throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
             }
-            int bytes_send = sendto(server_socket, receive_buffer, bytes_received, 0, (sockaddr*)&client_address, sizeof(client_address));
-            if (bytes_send == SOCKET_ERROR)
-            {
-                throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
-            }
+           
+            received_count++;
+            cout << "получено сообщений: " << received_count << "\r";
+            Sleep(20);
         }
 
         if (closesocket(server_socket) == SOCKET_ERROR)
         {
             throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
-        }
+        }   
         system("pause");
         WSACleanup();
     }

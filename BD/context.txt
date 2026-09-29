@@ -29,3 +29,11 @@ SQL*Plus
 Команда запуска: sqlplus
 Вход обычным пользователем: sqlplus AAR@//localhost:1521/FREEPDB1
 Вход администратором: sqlplus SYSTEM@//localhost:1521/FREEPDB1
+
+
+-- Создание общего пользователя --
+ALTER SESSION SET CONTAINER = CDB$ROOT;
+
+CREATE USER C##AAR IDENTIFIED BY "CommonPass123" CONTAINER = ALL;
+
+GRANT CREATE SESSION TO C##AAR CONTAINER = ALL;

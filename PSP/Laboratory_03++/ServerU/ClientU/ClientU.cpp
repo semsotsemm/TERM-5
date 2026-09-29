@@ -9,9 +9,9 @@
 
 using namespace std;
 
-const char* SERVER_IP = "127.0.0.1";
+const char* SERVER_IP = "172.20.10.13";
 const int SERVER_PORT = 2000;
-const int COUNT_OF_MESSAGE = 100000;
+const int COUNT_OF_MESSAGE = 3000;
 
 
 // Получение описания ошибки по ее коду.
@@ -230,7 +230,7 @@ int main()
         for (int i = 0; i < COUNT_OF_MESSAGE; i++) 
         {
             sendto(client_socket, message.c_str(), message.length(), 0, (sockaddr*)&server_address, sizeof(server_address));
-            recvfrom(client_socket, received_buffer, sizeof(received_buffer) - 1, 0, (sockaddr*)&sender_address, &sender_address_size);
+            // recvfrom(client_socket, received_buffer, sizeof(received_buffer) - 1, 0, (sockaddr*)&sender_address, &sender_address_size);
         }
 
         int end_time = clock();
