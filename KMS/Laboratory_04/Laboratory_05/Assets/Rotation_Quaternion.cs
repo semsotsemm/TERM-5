@@ -16,13 +16,10 @@ public class Rotation_Quaternion : MonoBehaviour
     {
         angle += speed * Time.deltaTime;
 
-        Quaternion rotationX =
-            Quaternion.AngleAxis(angle, Vector3.right);
+        Quaternion rotationX = Quaternion.AngleAxis(angle, Vector3.right);
 
-        Quaternion rotationZ =
-            Quaternion.AngleAxis(angle, Vector3.forward);
+        Quaternion rotationZ = Quaternion.AngleAxis(angle, Vector3.forward);
 
-        transform.rotation =
-            startRotation * rotationX * rotationZ;
+        transform.rotation = startRotation * rotationX * rotationZ;
     }
 }

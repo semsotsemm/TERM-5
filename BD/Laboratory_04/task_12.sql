@@ -16,5 +16,5 @@ SELECT group#, type, member
     FROM v$logfile;
 
 ALTER SYSTEM SWITCH LOGFILE;
-SELECT group#, status 
+SELECT group#, status,  first_change#, next_change#
     FROM v$log;

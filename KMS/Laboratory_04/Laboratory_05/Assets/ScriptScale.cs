@@ -13,13 +13,11 @@ public class ScriptScale : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Увеличиваем куб по X и Y.
         Vector3 scale = transform.localScale;
         scale.x = Mathf.Min(scale.x + speed * Time.fixedDeltaTime);
         scale.y = Mathf.Min(scale.y + speed * Time.fixedDeltaTime);
         transform.localScale = scale;
 
-        // Ищем объекты, оказавшиеся внутри куба.
         Collider[] hits = Physics.OverlapBox(
             box.bounds.center,
             box.bounds.extents
@@ -35,7 +33,6 @@ public class ScriptScale : MonoBehaviour
             if (body == null || body.isKinematic)
                 continue;
 
-            // Вычисляем, куда и насколько нужно вынести сферу.
             if (Physics.ComputePenetration(
                 hit,
                 hit.transform.position,
