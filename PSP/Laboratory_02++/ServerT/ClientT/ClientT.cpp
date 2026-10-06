@@ -9,7 +9,7 @@
 
 using namespace std;
 
-const char* SERVER_IP = "127.0.0.1";
+const char* SERVER_IP = "10.208.126.41";
 const int SERVER_PORT = 2000;
 
 

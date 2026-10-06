@@ -9,7 +9,6 @@
 
 using namespace std;
 
-const char* SERVER_IP = "127.0.0.1";
 const short SERVER_PORT = 2000;
 
 
@@ -198,26 +197,33 @@ bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* fl
     SOCKET server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (server_socket == INVALID_SOCKET)
     {
-        closesocket(server_socket);
-        throw(SetErrorMessageText("Ошибка WinSosk: ", WSAGetLastError()));
+        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
     }
+
+    // Отключение ошибки 10054 (WSAECONNRESET) при получении ICMP-ответов
+#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
+    BOOL bNewBehavior = FALSE;
+    DWORD dwBytesReturned = 0;
+    WSAIoctl(server_socket, SIO_UDP_CONNRESET, &bNewBehavior, sizeof(bNewBehavior), NULL, 0, &dwBytesReturned, NULL, NULL);
 
     SOCKADDR_IN server_address;
     server_address.sin_family = AF_INET;
-    server_address.sin_port = htons(SERVER_PORT);
+    server_address.sin_port = htons(port);
     server_address.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(server_socket, (sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR)
     {
-        throw(SetErrorMessageText("Ошибка WinSosk: ", WSAGetLastError()));
+        closesocket(server_socket);
+        throw(SetErrorMessageText("Ошибка bind: ", WSAGetLastError()));
     }
 
     int timeout = 10000;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) == SOCKET_ERROR) // SOL_SOCKET: уровень применения, SO_RCVTIMEO: опция
+    if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) == SOCKET_ERROR)
     {
         closesocket(server_socket);
-        throw(SetErrorMessageText("Ошибка WinSosk: ", WSAGetLastError()));
+        throw(SetErrorMessageText("Ошибка setsockopt: ", WSAGetLastError()));
     }
+
     char receive_buffer[1024];
     cout << "Ожидание позывного (" << name << ") на порту " << port << "...\n";
 
@@ -234,29 +240,23 @@ bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* fl
             }
             else
             {
-                throw(SetErrorMessageText("Ошибка WinSosk: ", WSAGetLastError()));
+                throw(SetErrorMessageText("Ошибка recvfrom: ", error_code));
             }
         }
 
         receive_buffer[bytes_received] = '\0';
 
-        cout << "Пришло сообшение: " << receive_buffer << endl;
+        cout << "Пришло сообщение: " << receive_buffer << endl;
         if (strcmp(receive_buffer, name) == 0)
         {
             cout << "Позывной верный.\n";
-            closesocket(server_socket);
+            closesocket(server_socket); // Освобождаем порт 2000 для функции PutAnswerToClient
             return true;
         }
         else
         {
             cout << "Позывной не совпал. Игнорируем...\n";
         }
-    }
-
-
-    if (closesocket(server_socket) == SOCKET_ERROR)
-    {
-        throw(SetErrorMessageText("Ошибка WinSosk: ", WSAGetLastError()));
     }
 }
 
@@ -270,21 +270,33 @@ bool PutAnswerToClient(char* name, struct sockaddr* to, int tlen)
         throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
     }
 
+    // Привязка нового сокета к порту 2000 для корректной маршрутизации через брандмауэр
+    SOCKADDR_IN server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(SERVER_PORT);
+    server_address.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(client_socket, (sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR)
+    {
+        closesocket(client_socket);
+        throw(SetErrorMessageText("Ошибка bind в ответе: ", WSAGetLastError()));
+    }
+
     int bytes_send = sendto(client_socket, name, strlen(name), 0, to, tlen);
 
     if (bytes_send == SOCKET_ERROR)
     {
         closesocket(client_socket);
-        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+        throw(SetErrorMessageText("Ошибка sendto: ", WSAGetLastError()));
     }
+
     if (closesocket(client_socket) == SOCKET_ERROR)
     {
-        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+        throw(SetErrorMessageText("Ошибка closesocket: ", WSAGetLastError()));
     }
 
     return true;
 }
-
 
 // Поиска других серверов в локальной сети
 void FindOtherServers(char* callsign, short port)
