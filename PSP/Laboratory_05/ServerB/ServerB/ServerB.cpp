@@ -253,6 +253,7 @@ bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* fl
     }
 }
 
+
 bool PutAnswerToClient(char* name, struct sockaddr* to, int tlen)
 {
     SOCKET client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -274,6 +275,7 @@ bool PutAnswerToClient(char* name, struct sockaddr* to, int tlen)
 
     return true;
 }
+
 
 void FindOtherServers(char* callsign, short port)
 {
@@ -355,6 +357,7 @@ void FindOtherServers(char* callsign, short port)
     }
 }
 
+
 int main()
 {
     setlocale(LC_CTYPE, "Russian");
@@ -369,11 +372,11 @@ int main()
         char local_hostname[256];
         if (gethostname(local_hostname, sizeof(local_hostname)) == 0)
         {
-            cout << "Символическое имя этого компьютера (Сервера): " << local_hostname << "\n\n";
+            cout << "Имя сервера: " << local_hostname << "\n\n";
         }
         else
         {
-            cout << "Ошибка получения символического имени локального компьютера.\n\n";
+            cout << "Ошибка получения имени сервера.\n\n";
         }
 
         char callsign[] = "Hello";
@@ -389,7 +392,7 @@ int main()
 
             if (result)
             {
-                cout << "Успех. Правильный позывной получен.\n";
+                cout << "Правильный позывной получен.\n";
                 cout << "-------------- Параметры клиента --------------\n";
 
                 hostent* client_host = gethostbyaddr((const char*)&client_address.sin_addr, 4, AF_INET);
@@ -397,8 +400,8 @@ int main()
 
                 cout << "Символическое имя: " << client_hostname_str << endl;
 
-                cout << "IP: " << inet_ntoa(client_address.sin_addr) << endl;
-                cout << "Порт: " << ntohs(client_address.sin_port) << endl;
+                cout << "ip: " << inet_ntoa(client_address.sin_addr) << endl;
+                cout << "порт: " << ntohs(client_address.sin_port) << endl;
                 cout << "------------------------------------------------\n";
 
                 if (PutAnswerToClient(callsign, (sockaddr*)&client_address, client_address_size))
@@ -411,7 +414,6 @@ int main()
                 cout << "Таймаут 10 сек.\n";
             }
         }
-
         WSACleanup();
     }
     catch (string error_message)
