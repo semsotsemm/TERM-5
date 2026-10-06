@@ -3,14 +3,10 @@
 #include <iostream>
 #include <winsock2.h>
 #include <string>
-#include <ctime>
 
 #pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
-
-const char* SERVER_IP = "127.0.0.1";
-const short SERVER_PORT = 2000;
 
 
 // Получение описания ошибки по ее коду.
@@ -193,70 +189,73 @@ string SetErrorMessageText(string message_text, int error_code) {
 }
 
 
-bool GetServer(char* call, short port, struct sockaddr* from, int* flen)
+bool GetServerByName(char* name, char* call, struct sockaddr* from, int* flen)
 {
-    SOCKET server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
-    if (server_socket == INVALID_SOCKET)
+    hostent* host = gethostbyname(name);
+    if (host == NULL)
     {
-        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+        cout << "Ошибка разрешения имени хоста: " << name << endl;
+        return false;
     }
 
-    int bopt_val = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_BROADCAST, (char*)&bopt_val, sizeof(bopt_val)) == SOCKET_ERROR)
+    SOCKET client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (client_socket == INVALID_SOCKET)
     {
-        closesocket(server_socket);
-        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+        throw SetErrorMessageText("Ошибка socket: ", WSAGetLastError());
     }
 
-    int timeout = 5000;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) == SOCKET_ERROR)
+    int timeout = 2000; 
+    if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) == SOCKET_ERROR)
     {
-        closesocket(server_socket);
-        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+        closesocket(client_socket);
+        throw SetErrorMessageText("Ошибка setsockopt: ", WSAGetLastError());
     }
 
-    SOCKADDR_IN broadcast_addr;
-    broadcast_addr.sin_family = AF_INET;
-    broadcast_addr.sin_port = htons(port);
-    broadcast_addr.sin_addr.s_addr = INADDR_BROADCAST;
+    SOCKADDR_IN* target_address = (SOCKADDR_IN*)from;
+    target_address->sin_family = AF_INET;
 
-    int bytes_sent = sendto(server_socket, call, strlen(call), 0, (sockaddr*)&broadcast_addr, sizeof(broadcast_addr));
-    if (bytes_sent == SOCKET_ERROR)
+    target_address->sin_addr.s_addr = ((in_addr*)host->h_addr_list[0])->s_addr;
+
+    if (sendto(client_socket, call, strlen(call), 0, from, *flen) == SOCKET_ERROR)
     {
-        closesocket(server_socket);
-        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+        closesocket(client_socket);
+        throw SetErrorMessageText("Ошибка sendto: ", WSAGetLastError());
     }
 
     char receive_buffer[1024];
+    SOCKADDR_IN response_address;
+    int response_len = sizeof(response_address);
 
-    int bytes_received = recvfrom(server_socket, receive_buffer, sizeof(receive_buffer) - 1, 0, from, flen);
+    int bytes_received = recvfrom(client_socket, receive_buffer, sizeof(receive_buffer) - 1, 0, (sockaddr*)&response_address, &response_len);
 
     if (bytes_received == SOCKET_ERROR)
     {
-        int err = WSAGetLastError();
-        closesocket(server_socket);
+        int error_code = WSAGetLastError();
+        closesocket(client_socket);
 
-        if (err == WSAETIMEDOUT)
+        if (error_code == WSAETIMEDOUT)
         {
-            return false;
+            return false; 
         }
         else
         {
-            throw SetErrorMessageText("Ошибка recvfrom: ", err);
+            throw SetErrorMessageText("Ошибка recvfrom: ", error_code);
         }
     }
+
     receive_buffer[bytes_received] = '\0';
-    closesocket(server_socket);
 
     if (strcmp(receive_buffer, call) == 0)
     {
+        *((SOCKADDR_IN*)from) = response_address;
+        *flen = response_len;
+
+        closesocket(client_socket);
         return true;
     }
-    else
-    {
-        return false;
-    }
+
+    closesocket(client_socket);
+    return false;
 }
 
 
@@ -269,36 +268,43 @@ int main()
     {
         if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
         {
-            throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+            throw SetErrorMessageText("Ошибка WSAStartup: ", WSAGetLastError());
         }
+
+        char target_hostname[] = "localhost"; 
         char callsign[] = "Hello";
+        short target_port = 2000;
+
         SOCKADDR_IN server_address;
-        int server_address_size = sizeof(server_address);
+        int address_len = sizeof(server_address);
 
-        cout << "Поиск сервера с позывным " << callsign << " в локальной сети...\n";
+        ZeroMemory(&server_address, sizeof(server_address));
+        server_address.sin_family = AF_INET;
+        server_address.sin_port = htons(target_port);
 
-        bool isServerFound = GetServer(callsign, 2000, (sockaddr*)&server_address, &server_address_size);
+        cout << "Поиск сервера с именем '" << target_hostname << "' и позывным '" << callsign << "'...\n";
 
-        if (isServerFound)
+        if (GetServerByName(target_hostname, callsign, (sockaddr*)&server_address, &address_len))
         {
-            cout << "-------------------------------------------\n";
-            cout << "Сервер откликнулся на широковещательный запрос.\n";
-            cout << "--- Параметры сокета найденного сервера ---\n";
-            cout << "IP-адрес : " << inet_ntoa(server_address.sin_addr) << endl;
-            cout << "Порт     : " << ntohs(server_address.sin_port) << endl;
-            cout << "-------------------------------------------\n";
+            cout << "\nСервер успешно найден и подтвердил позывной.\n";
+            cout << "--- Параметры сервера ---\n";
+            cout << "IP: " << inet_ntoa(server_address.sin_addr) << endl;
+            cout << "Порт: " << ntohs(server_address.sin_port) << endl;
+            cout << "-------------------------\n";
         }
         else
         {
-            cout << "Не удалось найти сервер.\n";
+            cout << "\nСервер не найден или не ответил на позывной.\n";
         }
 
         WSACleanup();
     }
     catch (string error_message)
     {
-        cerr << error_message;
+        cerr << error_message << endl;
+        WSACleanup();
         return 1;
     }
+
     return 0;
 }

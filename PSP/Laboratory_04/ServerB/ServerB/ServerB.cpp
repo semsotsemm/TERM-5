@@ -193,7 +193,7 @@ string SetErrorMessageText(string message_text, int error_code) {
 }
 
 
-bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* flen) 
+bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* flen)
 {
     SOCKET server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (server_socket == INVALID_SOCKET)
@@ -205,9 +205,9 @@ bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* fl
     SOCKADDR_IN server_address;
     server_address.sin_family = AF_INET;
     server_address.sin_port = htons(SERVER_PORT);
-    server_address.sin_addr.s_addr =INADDR_ANY;
+    server_address.sin_addr.s_addr = INADDR_ANY;
 
-    if (bind(server_socket, (sockaddr*)&server_address, sizeof(server_address))== SOCKET_ERROR)
+    if (bind(server_socket, (sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR)
     {
         throw(SetErrorMessageText("Ошибка WinSosk: ", WSAGetLastError()));
     }
@@ -221,10 +221,10 @@ bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* fl
     char receive_buffer[1024];
     cout << "Ожидание позывного (" << name << ") на порту " << port << "...\n";
 
-    while (true) 
+    while (true)
     {
         int bytes_received = recvfrom(server_socket, receive_buffer, sizeof(receive_buffer) - 1, 0, from, flen);
-        if(bytes_received == SOCKET_ERROR)
+        if (bytes_received == SOCKET_ERROR)
         {
             int error_code = WSAGetLastError();
             closesocket(server_socket);
@@ -241,7 +241,7 @@ bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* fl
         receive_buffer[bytes_received] = '\0';
 
         cout << "Пришло сообшение: " << receive_buffer << endl;
-        if (strcmp(receive_buffer, name) == 0) 
+        if (strcmp(receive_buffer, name) == 0)
         {
             cout << "Позывной верный.\n";
             closesocket(server_socket);
@@ -261,7 +261,7 @@ bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* fl
 }
 
 
-bool PutAnswerToClient(char* name, struct sockaddr* to, int tlen) 
+bool PutAnswerToClient(char* name, struct sockaddr* to, int tlen)
 {
     SOCKET client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
@@ -322,7 +322,7 @@ void FindOtherServers(char* callsign, short port)
     char receive_buffer[1024];
     SOCKADDR_IN from;
     int from_len = sizeof(from);
-    int server_count = 0; 
+    int server_count = 0;
 
     while (true)
     {
@@ -333,7 +333,7 @@ void FindOtherServers(char* callsign, short port)
             int err = WSAGetLastError();
             if (err == WSAETIMEDOUT)
             {
-                break; 
+                break;
             }
             else
             {
@@ -367,13 +367,13 @@ int main()
 {
     setlocale(LC_CTYPE, "Russian");
     WSADATA wsa_data;
-    try 
+    try
     {
-        if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0) 
+        if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
         {
             throw(SetErrorMessageText("Ошибка WinSosk: ", WSAGetLastError()));
         }
-        char callsign[] = "Hello"; 
+        char callsign[] = "Hello";
         FindOtherServers(callsign, 2000);
         cout << "Сервер запущен и ожидает запросов...\n";
 
@@ -388,7 +388,7 @@ int main()
             if (result)
             {
                 cout << "Успех. Правильный позывной получен.\n";
-                cout << "--- Параметры клиента ---\n";
+                cout << "-------------- Параметры клиента --------------\n";
                 cout << "ip: " << inet_ntoa(client_address.sin_addr) << endl;
                 cout << "порт: " << ntohs(client_address.sin_port) << endl;
                 cout << "------------------------------------------------\n";
@@ -406,7 +406,7 @@ int main()
 
         WSACleanup();
     }
-    catch (string error_message) 
+    catch (string error_message)
     {
         cerr << error_message << endl;
         return 1;

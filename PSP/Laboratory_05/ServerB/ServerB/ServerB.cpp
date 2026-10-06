@@ -193,111 +193,231 @@ string SetErrorMessageText(string message_text, int error_code) {
 }
 
 
-bool GetServer(char* call, short port, struct sockaddr* from, int* flen)
+bool GetRequestFromClient(char* name, short port, struct sockaddr* from, int* flen)
 {
     SOCKET server_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-
     if (server_socket == INVALID_SOCKET)
     {
         throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
     }
 
-    int bopt_val = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_BROADCAST, (char*)&bopt_val, sizeof(bopt_val)) == SOCKET_ERROR)
+    SOCKADDR_IN server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(SERVER_PORT);
+    server_address.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(server_socket, (sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR)
     {
-        closesocket(server_socket);
         throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
     }
 
-    int timeout = 5000;
+    int timeout = 10000;
     if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) == SOCKET_ERROR)
     {
         closesocket(server_socket);
         throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
     }
-
-    SOCKADDR_IN broadcast_addr;
-    broadcast_addr.sin_family = AF_INET;
-    broadcast_addr.sin_port = htons(port);
-    broadcast_addr.sin_addr.s_addr = INADDR_BROADCAST;
-
-    int bytes_sent = sendto(server_socket, call, strlen(call), 0, (sockaddr*)&broadcast_addr, sizeof(broadcast_addr));
-    if (bytes_sent == SOCKET_ERROR)
-    {
-        closesocket(server_socket);
-        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
-    }
-
     char receive_buffer[1024];
+    cout << "Ожидание позывного (" << name << ") на порту " << port << "...\n";
 
-    int bytes_received = recvfrom(server_socket, receive_buffer, sizeof(receive_buffer) - 1, 0, from, flen);
-
-    if (bytes_received == SOCKET_ERROR)
+    while (true)
     {
-        int err = WSAGetLastError();
-        closesocket(server_socket);
-
-        if (err == WSAETIMEDOUT)
+        int bytes_received = recvfrom(server_socket, receive_buffer, sizeof(receive_buffer) - 1, 0, from, flen);
+        if (bytes_received == SOCKET_ERROR)
         {
-            return false;
+            int error_code = WSAGetLastError();
+            closesocket(server_socket);
+            if (error_code == WSAETIMEDOUT)
+            {
+                return false;
+            }
+            else
+            {
+                throw(SetErrorMessageText("Ошибка WinSock: ", error_code));
+            }
+        }
+
+        receive_buffer[bytes_received] = '\0';
+
+        cout << "Пришло сообщение: " << receive_buffer << endl;
+        if (strcmp(receive_buffer, name) == 0)
+        {
+            cout << "Позывной верный.\n";
+            closesocket(server_socket);
+            return true;
         }
         else
         {
-            throw SetErrorMessageText("Ошибка recvfrom: ", err);
+            cout << "Позывной не совпал. Игнорируем...\n";
         }
-    }
-    receive_buffer[bytes_received] = '\0';
-    closesocket(server_socket);
-
-    if (strcmp(receive_buffer, call) == 0)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
     }
 }
 
+bool PutAnswerToClient(char* name, struct sockaddr* to, int tlen)
+{
+    SOCKET client_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (client_socket == INVALID_SOCKET)
+    {
+        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+    }
+
+    int bytes_send = sendto(client_socket, name, strlen(name), 0, to, tlen);
+    if (bytes_send == SOCKET_ERROR)
+    {
+        closesocket(client_socket);
+        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+    }
+    if (closesocket(client_socket) == SOCKET_ERROR)
+    {
+        throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
+    }
+
+    return true;
+}
+
+void FindOtherServers(char* callsign, short port)
+{
+    cout << "Проверка наличия других серверов в сети...\n";
+
+    SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    if (s == INVALID_SOCKET)
+    {
+        throw SetErrorMessageText("Ошибка socket: ", WSAGetLastError());
+    }
+
+    int boptVal = 1;
+    if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, (char*)&boptVal, sizeof(boptVal)) == SOCKET_ERROR)
+    {
+        throw SetErrorMessageText("Ошибка setsockopt (BROADCAST): ", WSAGetLastError());
+    }
+
+    int timeout = 2000;
+    if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout)) == SOCKET_ERROR)
+    {
+        throw SetErrorMessageText("Ошибка setsockopt (TIMEOUT): ", WSAGetLastError());
+    }
+
+    SOCKADDR_IN all;
+    all.sin_family = AF_INET;
+    all.sin_port = htons(port);
+    all.sin_addr.s_addr = INADDR_BROADCAST;
+
+    if (sendto(s, callsign, strlen(callsign), 0, (sockaddr*)&all, sizeof(all)) == SOCKET_ERROR)
+    {
+        throw SetErrorMessageText("Ошибка sendto: ", WSAGetLastError());
+    }
+
+    char receive_buffer[1024];
+    SOCKADDR_IN from;
+    int from_len = sizeof(from);
+    int server_count = 0;
+
+    while (true)
+    {
+        int bytes_received = recvfrom(s, receive_buffer, sizeof(receive_buffer) - 1, 0, (sockaddr*)&from, &from_len);
+
+        if (bytes_received == SOCKET_ERROR)
+        {
+            int err = WSAGetLastError();
+            if (err == WSAETIMEDOUT)
+            {
+                break;
+            }
+            else
+            {
+                closesocket(s);
+                throw SetErrorMessageText("Ошибка recvfrom: ", err);
+            }
+        }
+
+        receive_buffer[bytes_received] = '\0';
+        if (strcmp(receive_buffer, callsign) == 0)
+        {
+            server_count++;
+
+            hostent* remote_host = gethostbyaddr((const char*)&from.sin_addr, 4, AF_INET);
+            string remote_name = (remote_host != NULL) ? remote_host->h_name : "Неизвестно";
+
+            cout << "Найден другой сервер. Символическое имя: " << remote_name
+                << " IP: " << inet_ntoa(from.sin_addr) << endl;
+        }
+    }
+
+    closesocket(s);
+
+    if (server_count == 0)
+    {
+        cout << "Других серверов в сети не обнаружено.\n\n";
+    }
+    else
+    {
+        cout << "В сети уже работают серверы с таким же позывным. Количество: " << server_count << "\n\n";
+    }
+}
 
 int main()
 {
     setlocale(LC_CTYPE, "Russian");
     WSADATA wsa_data;
-
     try
     {
         if (WSAStartup(MAKEWORD(2, 2), &wsa_data) != 0)
         {
             throw(SetErrorMessageText("Ошибка WinSock: ", WSAGetLastError()));
         }
-        char callsign[] = "Hello";
-        SOCKADDR_IN server_address;
-        int server_address_size = sizeof(server_address);
 
-        cout << "Поиск сервера с позывным " << callsign << " в локальной сети...\n";
-
-        bool isServerFound = GetServer(callsign, 2000, (sockaddr*)&server_address, &server_address_size);
-
-        if (isServerFound)
+        char local_hostname[256];
+        if (gethostname(local_hostname, sizeof(local_hostname)) == 0)
         {
-            cout << "-------------------------------------------\n";
-            cout << "Сервер откликнулся на широковещательный запрос.\n";
-            cout << "--- Параметры сокета найденного сервера ---\n";
-            cout << "IP-адрес : " << inet_ntoa(server_address.sin_addr) << endl;
-            cout << "Порт     : " << ntohs(server_address.sin_port) << endl;
-            cout << "-------------------------------------------\n";
+            cout << "Символическое имя этого компьютера (Сервера): " << local_hostname << "\n\n";
         }
         else
         {
-            cout << "Не удалось найти сервер.\n";
+            cout << "Ошибка получения символического имени локального компьютера.\n\n";
+        }
+
+        char callsign[] = "Hello";
+        FindOtherServers(callsign, 2000);
+        cout << "Сервер запущен и ожидает запросов...\n";
+
+        while (true)
+        {
+            SOCKADDR_IN client_address;
+            int client_address_size = sizeof(client_address);
+
+            bool result = GetRequestFromClient(callsign, SERVER_PORT, (sockaddr*)&client_address, &client_address_size);
+
+            if (result)
+            {
+                cout << "Успех. Правильный позывной получен.\n";
+                cout << "-------------- Параметры клиента --------------\n";
+
+                hostent* client_host = gethostbyaddr((const char*)&client_address.sin_addr, 4, AF_INET);
+                string client_hostname_str = (client_host != NULL) ? client_host->h_name : "Символическое имя не определено";
+
+                cout << "Символическое имя: " << client_hostname_str << endl;
+
+                cout << "IP: " << inet_ntoa(client_address.sin_addr) << endl;
+                cout << "Порт: " << ntohs(client_address.sin_port) << endl;
+                cout << "------------------------------------------------\n";
+
+                if (PutAnswerToClient(callsign, (sockaddr*)&client_address, client_address_size))
+                {
+                    cout << "Ответный позывной успешно отправлен клиенту.\n";
+                }
+            }
+            else
+            {
+                cout << "Таймаут 10 сек.\n";
+            }
         }
 
         WSACleanup();
     }
     catch (string error_message)
     {
-        cerr << error_message;
+        cerr << error_message << endl;
+        WSACleanup();
         return 1;
     }
     return 0;
