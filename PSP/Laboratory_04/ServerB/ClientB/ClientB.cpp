@@ -257,8 +257,8 @@ bool GetServer(char* call, short port, struct sockaddr* from, int* flen)
     {
         return false; 
     }
-
 }
+
 
 int main()
 {
@@ -275,14 +275,14 @@ int main()
         SOCKADDR_IN server_address;
         int server_address_size = sizeof(server_address);
 
-        cout << "Поиск сервера '" << callsign << "' в локальной сети...\n";
+        cout << "Поиск сервера с позывным " << callsign << " в локальной сети...\n";
 
         bool isServerFound = GetServer(callsign, 2000, (sockaddr*)&server_address, &server_address_size);
 
         if (isServerFound)
         {
             cout << "-------------------------------------------\n";
-            cout << "Успех! Сервер откликнулся на широковещательный запрос.\n";
+            cout << "Сервер откликнулся на широковещательный запрос.\n";
             cout << "--- Параметры сокета найденного сервера ---\n";
             cout << "IP-адрес : " << inet_ntoa(server_address.sin_addr) << endl;
             cout << "Порт     : " << ntohs(server_address.sin_port) << endl;

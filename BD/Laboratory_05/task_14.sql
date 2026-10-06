@@ -1,4 +1,4 @@
--- Работающие DBWs -- 
+-- Работающие DBWn -- 
 SELECT 
     COUNT(*) AS dbwn_count
 FROM 
