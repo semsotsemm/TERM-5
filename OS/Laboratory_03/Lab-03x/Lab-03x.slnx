@@ -3,8 +3,10 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Lab-03a/Lab-03a.vcxproj" />
-  <Project Path="Lab-03b/Lab-03b.vcxproj" />
-  <Project Path="Lab-03x/Lab-03x.vcxproj" />
-  <Project Path="Lab-03с/Lab-03с.vcxproj" />
+  <Project Path="Lab-03a/Lab-03a.vcxproj" Id="629071cc-c451-43a7-b260-eb97a6783f22" />
+  <Project Path="Lab-03b/Lab-03b.vcxproj" Id="d5c5ee8b-6a53-42a7-951e-678eeca66986" />
+  <Project Path="Lab-03d-client/Lab-03d-client.vcxproj" Id="b230ec8a-e19c-4ada-a2af-556176508282" />
+  <Project Path="Lab-03d-server/Lab-03d-server.vcxproj" Id="bd6f497b-89d7-41ff-b423-d7b2ef9029f1" />
+  <Project Path="Lab-03x/Lab-03x.vcxproj" Id="a98365d2-0d54-431f-bcfe-5654e28b73aa" />
+  <Project Path="Lab-03с/Lab-03с.vcxproj" Id="c5ee177c-2d10-4353-81ea-176e19440ef2" />
 </Solution>

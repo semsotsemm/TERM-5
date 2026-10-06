@@ -15,10 +15,10 @@ int main()
         return 1;
     }
 
-    PROCESSENTRY32 pe32;
-    pe32.dwSize = sizeof(PROCESSENTRY32);
+    PROCESSENTRY32 process_info;
+    process_info.dwSize = sizeof(PROCESSENTRY32);
 
-    if (!Process32First(hProcessSnap, &pe32))
+    if (!Process32First(hProcessSnap, &process_info))
     {
         cout << "Error: Process32First failed. Error code: " << GetLastError() << "\n";
         CloseHandle(hProcessSnap);
@@ -30,11 +30,12 @@ int main()
 
     do
     {
-        cout << left << setw(10) << pe32.th32ProcessID << setw(15) << pe32.th32ParentProcessID << pe32.szExeFile << "\n";
+        wcout << left << setw(10) << process_info.th32ProcessID << setw(15) << process_info.th32ParentProcessID << process_info.szExeFile << L"\n";
 
-    } while (Process32Next(hProcessSnap, &pe32)); 
+    } while (Process32Next(hProcessSnap, &process_info)); 
 
     CloseHandle(hProcessSnap);
+    cout << "\n";
 
     system("pause");
     return 0;
