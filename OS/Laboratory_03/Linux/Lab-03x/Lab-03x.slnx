@@ -3,5 +3,9 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="Lab-03a/Lab-03a.vcxproj" />
+  <Project Path="Lab-03d-client/Lab-03d-client.vcxproj" />
+  <Project Path="Lab-03d-server/Lab-03d-server.vcxproj" />
   <Project Path="Lab-03x/Lab-03x.vcxproj" />
+  <Project Path="signals/signals.vcxproj" />
 </Solution>
