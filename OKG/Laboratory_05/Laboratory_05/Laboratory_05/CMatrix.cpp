@@ -6,6 +6,7 @@
 
 using namespace std;
 
+// Создание матрицы [количество строк, количество столбцов] -> новая матрица (n на m)
 void CMatrix::Allocate(int rows_count, int columns_count)
 {
     if (rows_count <= 0 || columns_count <= 0)
@@ -36,6 +37,7 @@ void CMatrix::Allocate(int rows_count, int columns_count)
     }
 }
 
+// Освобождение места, удаление матрицы [] -> void
 void CMatrix::Free()
 {
     if (array == nullptr)
@@ -51,6 +53,7 @@ void CMatrix::Free()
     array = nullptr;
 }
 
+// Замена матрицы на существующую [Существующая матрица] -> void
 void CMatrix::Swap(CMatrix& matrix)
 {
     swap(array, matrix.array);
@@ -58,6 +61,7 @@ void CMatrix::Swap(CMatrix& matrix)
     swap(n_cols, matrix.n_cols);
 }
 
+// Проверка, не выходит ли переданный индекс за пределы матрицы [индекс строки, индекс столбца] -> throw при ошибке, иначе void
 void CMatrix::CheckIndex(int row, int column) const
 {
     if (row < 0 || row >= n_rows || column < 0 || column >= n_cols)
@@ -66,22 +70,26 @@ void CMatrix::CheckIndex(int row, int column) const
     }
 }
 
+// Конструктор матрицы по умолчанию [] -> Матрица 1 на 1
 CMatrix::CMatrix() : array(nullptr), n_rows(0), n_cols(0)
 {
     Allocate(1, 1);
 }
 
+// Конструктор матрицы [Количество строк n, количество столбцов m] -> новая матрица n на m
 CMatrix::CMatrix(int rows_count, int columns_count)
     : array(nullptr), n_rows(0), n_cols(0)
 {
     Allocate(rows_count, columns_count);
 }
 
+// Конструктор матрицы-вектора [количество строк n] -> матрица-вектор n на 1 
 CMatrix::CMatrix(int rows_count) : array(nullptr), n_rows(0), n_cols(0)
 {
     Allocate(rows_count, 1);
 }
 
+// Конструктор матрицы, копирование существующей [существующая матрица] -> дубликат существующей матрицы 
 CMatrix::CMatrix(const CMatrix& matrix) : array(nullptr), n_rows(0), n_cols(0)
 {
     Allocate(matrix.n_rows, matrix.n_cols);
@@ -95,23 +103,27 @@ CMatrix::CMatrix(const CMatrix& matrix) : array(nullptr), n_rows(0), n_cols(0)
     }
 }
 
+// Деструктор матрицы, освобождает место
 CMatrix::~CMatrix()
 {
     Free();
 }
 
+// Перегрузка () — доступ к элементам временной матрицы при помощи ()
 double& CMatrix::operator()(int row, int column)
 {
     CheckIndex(row, column);
     return array[row][column];
 }
 
+// Перегрузка () — доступ к элементам постоянной матрицы при помощи ()
 const double& CMatrix::operator()(int row, int column) const
 {
     CheckIndex(row, column);
     return array[row][column];
 }
 
+// Перегрузка () — доступ к элементам временной матрицы при помощи ()
 double& CMatrix::operator()(int row)
 {
     if (n_cols != 1)
@@ -121,6 +133,7 @@ double& CMatrix::operator()(int row)
     return (*this)(row, 0);
 }
 
+// Перегрузка () — доступ к элементам постоянной матрицы при помощи ()
 const double& CMatrix::operator()(int row) const
 {
     if (n_cols != 1)
@@ -130,6 +143,7 @@ const double& CMatrix::operator()(int row) const
     return (*this)(row, 0);
 }
 
+// Замена знаков всех переменных на противоположные [] -> такая-же матрица, где все знаки обратные
 CMatrix CMatrix::operator-() const
 {
     CMatrix result(n_rows, n_cols);
@@ -143,6 +157,7 @@ CMatrix CMatrix::operator-() const
     return result;
 }
 
+// Перегрузка оператора присваивания [новая матрица] -> копия новой матрицы
 CMatrix& CMatrix::operator=(const CMatrix& matrix)
 {
     if (this == &matrix)
@@ -150,12 +165,12 @@ CMatrix& CMatrix::operator=(const CMatrix& matrix)
         return *this;
     }
 
-    // Копия сначала создается отдельно: при ошибке текущая матрица не испортится.
     CMatrix copy(matrix);
     Swap(copy);
     return *this;
 }
 
+// Перемножение двух матриц [вторая матрица] -> матричное произведение двух матриц
 CMatrix CMatrix::operator*(const CMatrix& matrix) const
 {
     if (n_cols != matrix.n_rows)
@@ -177,6 +192,7 @@ CMatrix CMatrix::operator*(const CMatrix& matrix) const
     return result;
 }
 
+// Сложение двух матриц [вторая матрица] -> сумма двух матриц
 CMatrix CMatrix::operator+(const CMatrix& matrix) const
 {
     if (n_rows != matrix.n_rows || n_cols != matrix.n_cols)
@@ -195,6 +211,7 @@ CMatrix CMatrix::operator+(const CMatrix& matrix) const
     return result;
 }
 
+// Вычитание двух матриц [вторая матрица] -> разность двух матриц
 CMatrix CMatrix::operator-(const CMatrix& matrix) const
 {
     if (n_rows != matrix.n_rows || n_cols != matrix.n_cols)
@@ -213,6 +230,7 @@ CMatrix CMatrix::operator-(const CMatrix& matrix) const
     return result;
 }
 
+// Сложение матрицы со скаляром [скаляр] -> матрица, каждый элемент которой большое исходного на скаляр
 CMatrix CMatrix::operator+(double value) const
 {
     CMatrix result(*this);
@@ -226,6 +244,7 @@ CMatrix CMatrix::operator+(double value) const
     return result;
 }
 
+// Вычитание из матрицы скаляра [скаляр] -> матрица, каждый элемент которой меньше исходного на скаляр
 CMatrix CMatrix::operator-(double value) const
 {
     CMatrix result(*this);
@@ -239,6 +258,7 @@ CMatrix CMatrix::operator-(double value) const
     return result;
 }
 
+// Транспонирование матрицы (замена строк на столбцы и наоборот) [] -> транспонирование матрицы
 CMatrix CMatrix::Transp() const
 {
     CMatrix result(n_cols, n_rows);
@@ -252,15 +272,16 @@ CMatrix CMatrix::Transp() const
     return result;
 }
 
+// Копирование всей строки матрицы в отдельный объект вектор-матрицы [номер строки] -> строка в виде вектор-матрицы
 CMatrix CMatrix::GetRow(int row) const
 {
     return GetRow(row, 0, n_cols - 1);
 }
 
+// Копирование определенной строки матрицы в отдельный объект вектор-матрицы [номер строки, начальный столбец, конечный столбец] -> строка в виде вектор-матрицы с заданным началом и концом
 CMatrix CMatrix::GetRow(int row, int first_column, int last_column) const
 {
-    if (row < 0 || row >= n_rows || first_column < 0 ||
-        first_column > last_column || last_column >= n_cols)
+    if (row < 0 || row >= n_rows || first_column < 0 || first_column > last_column || last_column >= n_cols)
     {
         throw out_of_range("Неверные границы строки матрицы.");
     }
@@ -273,11 +294,13 @@ CMatrix CMatrix::GetRow(int row, int first_column, int last_column) const
     return result;
 }
 
+// Копирование всего столбца матрицы в отдельный объект вектор-матрицы [номер столбеца] -> столбец в виде вектор-матрицы
 CMatrix CMatrix::GetCol(int column) const
 {
     return GetCol(column, 0, n_rows - 1);
 }
 
+// Копирование определенного столбца матрицы в отдельный объект вектор-матрицы [номер столбца, начальная строка, конечная строка] -> столбец в виде вектор-матрицы с заданным началом и концом
 CMatrix CMatrix::GetCol(int column, int first_row, int last_row) const
 {
     if (column < 0 || column >= n_cols || first_row < 0 ||
@@ -294,6 +317,7 @@ CMatrix CMatrix::GetCol(int column, int first_row, int last_row) const
     return result;
 }
 
+// Изменяет размеры матрицы, исходные данные удаляются [количество строк, количество столбцов] -> новая матрица, размером n на m
 CMatrix& CMatrix::RedimMatrix(int rows_count, int columns_count)
 {
     CMatrix resized(rows_count, columns_count);
@@ -301,6 +325,7 @@ CMatrix& CMatrix::RedimMatrix(int rows_count, int columns_count)
     return *this;
 }
 
+// Изменяет размеры матрицы, исходные данные сохраняются [количество строк, количество столбцов] -> новая матрица, размером n на m
 CMatrix& CMatrix::RedimData(int rows_count, int columns_count)
 {
     CMatrix resized(rows_count, columns_count);
@@ -319,16 +344,19 @@ CMatrix& CMatrix::RedimData(int rows_count, int columns_count)
     return *this;
 }
 
+// Пересоздаем матрицу в виде вектор-матрицы (данные удаляются) [количество строк] -> вектор матрица с 1 столбцом и n строк
 CMatrix& CMatrix::RedimMatrix(int rows_count)
 {
     return RedimMatrix(rows_count, 1);
 }
 
+// Пересоздаем матрицу в виде вектор-матрицы (данные сохраняются) [количество строк] -> вектор матрица с 1 столбцом и n строк
 CMatrix& CMatrix::RedimData(int rows_count)
 {
     return RedimData(rows_count, 1);
 }
 
+// Получение максимального элемента матрицы [] -> максимальный элемент матрицы
 double CMatrix::MaxElement() const
 {
     double maximum = array[0][0];
@@ -342,6 +370,7 @@ double CMatrix::MaxElement() const
     return maximum;
 }
 
+// Получение минимального элемента матрицы [] -> минимальный элемент матрицы
 double CMatrix::MinElement() const
 {
     double minimum = array[0][0];

@@ -113,7 +113,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -139,11 +139,15 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CBlade.cpp" />
     <ClCompile Include="CMatrix.cpp" />
     <ClCompile Include="Laboratory_05.cpp" />
+    <ClCompile Include="Libgraph.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CBlade.h" />
     <ClInclude Include="CMatrix.h" />
+    <ClInclude Include="Libgraph.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
