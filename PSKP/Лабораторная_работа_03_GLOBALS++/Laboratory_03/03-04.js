@@ -5,12 +5,12 @@ const PORT = 5000;
 
 function get_factorial_async(number, callback) {
     if (number <= 1n) {
-        setImmediate(() => {
+        process.nextTick(() => {
             callback(1n);
         });
-    } else {
-        // Рекурсивный случай: ставим следующий шаг в очередь
-        setImmediate(() => {
+    }
+    else {
+        process.nextTick(() => {
             get_factorial_async(number - 1n, (result) => {
                 callback(number * result);
             });
@@ -41,7 +41,7 @@ const server = http.createServer((req, res) => {
                 throw new Error("Некорректный параметр k.");
             }
 
-            // Вызов асинхронной функции
+            // Вызываем асинхронную функцию и передаем ей коллбэк,
             get_factorial_async(BigInt(factorial_number), (fact_result) => {
                 const user_response = {
                     "k": factorial_number,
@@ -53,7 +53,7 @@ const server = http.createServer((req, res) => {
             });
 
         } catch (err) {
-            res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" });
+            res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
             res.end("Параметр k должен быть целым, положительным числом.");
         }
     }

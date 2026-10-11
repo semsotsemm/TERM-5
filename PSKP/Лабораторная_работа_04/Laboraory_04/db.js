@@ -82,7 +82,6 @@ class DB extends Eventemitter {
         });
     }
 
-
     async SelectAllRows()
     {
         return dbArray;

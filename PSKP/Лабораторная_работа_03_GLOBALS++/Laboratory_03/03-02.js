@@ -57,7 +57,7 @@ const server = http.createServer((req,res) =>
         }
         catch(err)
         {
-            res.statusCode = 400;
+            res.statusCode = 500;
             res.setHeader("Content-Type", "text/plain; charset=utf-8");
             res.end("Параметр k должен быть целым, положительным числом.");
             return;
