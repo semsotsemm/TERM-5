@@ -1,3 +1,4 @@
+-- Создать материальное  представление --
 CREATE MATERIALIZED VIEW MV
     BUILD IMMEDIATE
     REFRESH COMPLETE
@@ -8,7 +9,12 @@ CREATE MATERIALIZED VIEW MV
     FROM TAB_A
     INNER JOIN TAB_B ON TAB_A.ID = TAB_B.TAB_A_ID;
 
-SELECT * FROM MV;
+SELECT * 
+    FROM MV;
 
-INSERT INTO TAB_B (ID, TAB_A_ID, INFO) VALUES (104, 2, 'Новый Сотрудник');
+INSERT INTO TAB_B (ID, TAB_A_ID, INFO) 
+    values (104, 2, 'Новый Сотрудник');
 COMMIT;
+
+
+DROP MATERIALIZED VIEW MV;

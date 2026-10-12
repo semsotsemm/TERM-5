@@ -1,2 +1,3 @@
 -- Попробовать  выйти за предел --
-Select S2.Nextval From Dual;
+Select S2.Nextval 
+    From Dual;

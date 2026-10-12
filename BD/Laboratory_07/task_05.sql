@@ -1,3 +1,4 @@
+-- Получить значение меньше минимального --
 CREATE SEQUENCE S3
     START WITH 10
     INCREMENT BY -10
@@ -6,4 +7,8 @@ CREATE SEQUENCE S3
     NOCYCLE
     ORDER;
     
-SELECT S3.NEXTVAL FROM dual;
+SELECT S3.NEXTVAL
+    FROM dual;
+
+
+DROP SEQUENCE S3;

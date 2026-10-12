@@ -1,1 +1,3 @@
-SELECT * FROM USER_SEQUENCES;
+-- Все последовательности --
+SELECT * 
+    FROM USER_SEQUENCES;

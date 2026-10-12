@@ -1,6 +1,11 @@
+-- Создать частный синоним --
 CREATE SYNONYM MY_C FOR C;
 
 INSERT INTO MY_C (XC, VC, EXTRA_C) VALUES (1, 'Test', 'Hello');
 COMMIT;
 
-SELECT * FROM MY_C;
+SELECT * 
+    FROM MY_C;
+
+    
+DROP SYNONYM MY_C;

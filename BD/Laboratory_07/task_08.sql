@@ -16,4 +16,8 @@ BEGIN
 END;
 /
 
-SELECT * FROM T1;
+SELECT * 
+    FROM T1;
+    
+    
+DROP TABLE T1 PURGE;
