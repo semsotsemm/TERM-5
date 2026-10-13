@@ -9,6 +9,10 @@
 using namespace std;
 
 
+char target_hostname[] = "localhost";
+
+
+
 // Получение описания ошибки по ее коду.
 string SetErrorMessageText(string message_text, int error_code) {
     string error_message = message_text;
@@ -271,7 +275,6 @@ int main()
             throw SetErrorMessageText("Ошибка WSAStartup: ", WSAGetLastError());
         }
 
-        char target_hostname[] = "localhost"; 
         char callsign[] = "Hello";
         short target_port = 2000;
 

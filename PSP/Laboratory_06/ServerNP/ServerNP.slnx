@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="ClientNP/ClientNP.vcxproj" Id="828851d7-f87e-4017-919c-704e3834d5b4" />
+  <Project Path="ClientNPct/ClientNPct.vcxproj" Id="89acaaee-e087-4d0a-a082-dd187c3037b0" />
+  <Project Path="ClientNPt/ClientNPt.vcxproj" Id="c9c6f65f-f09d-4c20-bca5-d07757682279" />
+  <Project Path="ServerNP/ServerNP.vcxproj" Id="27ed531b-05aa-47d5-9641-040d94cf15a9" />
+</Solution>
