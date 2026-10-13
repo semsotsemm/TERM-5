@@ -65,23 +65,31 @@ int main()
 
     try
     {
+        DWORD share_mode = 0;
+        LPSECURITY_ATTRIBUTES security_attributes = NULL;
+        DWORD flags_and_attributes = 0;
+        HANDLE template_file = NULL;
         LPCWSTR pipe_name = L"\\\\.\\pipe\\Tube";
+        
         client_handle = CreateFile(
-            pipe_name, 
-            GENERIC_READ | GENERIC_WRITE, 
-            0, 
-            NULL, 
+            pipe_name,
+            GENERIC_READ | GENERIC_WRITE,
+            share_mode,
+            security_attributes,
             OPEN_EXISTING,
-            0,
-            NULL);
-
+            flags_and_attributes,
+            template_file
+        );
         if (client_handle == INVALID_HANDLE_VALUE)
         {
             throw SetErrorMessageText("Ошибка CreateFile: ", GetLastError());
         }
 
-        DWORD mode = PIPE_READMODE_MESSAGE;
-        if (!SetNamedPipeHandleState(client_handle, &mode, NULL, NULL))
+        DWORD read_mode = PIPE_READMODE_MESSAGE;
+        LPDWORD max_collection_count = NULL;
+        LPDWORD collect_data_timeout = NULL;
+        
+        if (!SetNamedPipeHandleState(client_handle, &read_mode, max_collection_count, collect_data_timeout))
         {
             throw SetErrorMessageText("Ошибка SetNamedPipeHandleState: ", GetLastError());
         }

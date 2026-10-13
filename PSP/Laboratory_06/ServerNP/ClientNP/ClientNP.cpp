@@ -66,16 +66,20 @@ int main()
     try
     {
         cout << "Подключение к каналу...\n";
-        LPCWSTR pipe_name = L"\\\\.\\pipe\\Tube";
+        DWORD share_mode = 0;
+        LPSECURITY_ATTRIBUTES security_attributes = NULL;
+        DWORD flags_and_attributes = 0;
+        HANDLE template_file = NULL;
+        LPCWSTR pipe_name = L"\\\\DESKTOP-1ESRE1C\\pipe\\Tube";
 
         client_handle = CreateFile(
-            pipe_name,                     
-            GENERIC_READ | GENERIC_WRITE,  
-            0,                             
-            NULL,                          
-            OPEN_EXISTING,                 
-            0,                             
-            NULL                           
+            pipe_name,
+            GENERIC_READ | GENERIC_WRITE,
+            share_mode,
+            security_attributes,
+            OPEN_EXISTING,
+            flags_and_attributes,
+            template_file
         );
 
         if (client_handle == INVALID_HANDLE_VALUE)

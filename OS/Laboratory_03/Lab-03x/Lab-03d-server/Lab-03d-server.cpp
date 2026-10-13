@@ -8,7 +8,7 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    if (argc < 5) 
+    if (argc < 5)
     {
         cout << "Usage: Lab-03d-server <K> <M> <L> <R>\n";
         return 1;
@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
     long long L = stoll(argv[3]);
     long long R = stoll(argv[4]);
 
-    if (K <= 0 || L > R || M <= 0) 
+    if (K <= 0 || L > R || M <= 0)
     {
         cout << "Invalid arguments.\n";
         return 1;
@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
     sa.bInheritHandle = TRUE;       // Разрешаем дочерним процессам наследовать дескрипторы
     sa.lpSecurityDescriptor = NULL; // Стандартные пд 
 
-    if (!CreatePipe(&hRead, &hWrite, &sa, 0)) 
+    if (!CreatePipe(&hRead, &hWrite, &sa, 0))
     {
         cout << "Error: CreatePipe failed. Code: " << GetLastError() << "\n";
         return 1;
@@ -42,25 +42,15 @@ int main(int argc, char* argv[]) {
 
     long long range = R - L + 1;
     long long step = range / K;
-    long long rem = range % K;
 
     vector<HANDLE> hProcesses;
     long long current_L = L;
 
     auto start_time = chrono::high_resolution_clock::now();
 
-    for (int i = 0; i < K; i++) 
+    for (int i = 0; i < K; i++)
     {
         long long current_R = current_L + step - 1;
-
-        if (K == 1) 
-        {
-            current_R += rem;
-        }
-        else if (i == 1) 
-        {
-            current_R += rem;
-        }
 
         if (current_L > current_R)
         {
@@ -79,12 +69,12 @@ int main(int argc, char* argv[]) {
         si.hStdOutput = hWrite;
         si.dwFlags |= STARTF_USESTDHANDLES;
 
-        if (CreateProcessA(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) 
+        if (CreateProcessA(NULL, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
         {
             hProcesses.push_back(pi.hProcess);
             CloseHandle(pi.hThread);
         }
-        else 
+        else
         {
             cout << "Failed to create process " << i << ". Error: " << GetLastError() << "\n";
         }
@@ -98,16 +88,16 @@ int main(int argc, char* argv[]) {
     char buffer[4096];
     DWORD bytesRead;
 
-    while (ReadFile(hRead, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0) 
+    while (ReadFile(hRead, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0)
     {
         buffer[bytesRead] = '\0';
         all_results += buffer;
     }
 
-    if (!hProcesses.empty()) 
+    if (!hProcesses.empty())
     {
         WaitForMultipleObjects(hProcesses.size(), hProcesses.data(), TRUE, INFINITE);
-        for (HANDLE h : hProcesses) 
+        for (HANDLE h : hProcesses)
         {
             CloseHandle(h);
         }
@@ -120,7 +110,7 @@ int main(int argc, char* argv[]) {
     int total_count = 0;
     stringstream result_stream(all_results);
     string temp;
-    while (result_stream >> temp) 
+    while (result_stream >> temp)
     {
         total_count++;
     }
