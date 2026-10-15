@@ -17,7 +17,7 @@ int main() {
     signal(SIGUSR1, signal_handler);
     signal(SIGUSR2, signal_handler);
     
-    signal(SIGINT, SIG_IGN);
+    signal(SIGINT, SIG_IGN); 
 
     cout << "Program running with PID " << getpid() << "\n";
 

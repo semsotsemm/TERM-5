@@ -3,9 +3,9 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Lab-03a/Lab-03a.vcxproj" />
-  <Project Path="Lab-03d-client/Lab-03d-client.vcxproj" />
-  <Project Path="Lab-03d-server/Lab-03d-server.vcxproj" />
-  <Project Path="Lab-03x/Lab-03x.vcxproj" />
-  <Project Path="signals/signals.vcxproj" />
+  <Project Path="Lab-03a/Lab-03a.vcxproj" Id="02735cd5-2906-45ff-b9f5-4afb4e14477e" />
+  <Project Path="Lab-03d-client/Lab-03d-client.vcxproj" Id="d39e1e3e-8ca2-4f76-bb06-f798bc536128" />
+  <Project Path="Lab-03d-server/Lab-03d-server.vcxproj" Id="719fe147-0680-4bfc-95bb-0758140a59a7" />
+  <Project Path="Lab-03x/Lab-03x.vcxproj" Id="a03e0b65-962d-4bfe-a242-ba8edfa22eb2" />
+  <Project Path="signals/signals.vcxproj" Id="c9b8faf1-30c1-4d91-a4d3-182c3042f762" />
 </Solution>

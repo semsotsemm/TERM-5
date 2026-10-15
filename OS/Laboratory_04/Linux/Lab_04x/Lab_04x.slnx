@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="Lab-04pi_Linux/Lab-04pi_Linux.vcxproj" />
+  <Project Path="Lab-04px/Lab-04px.vcxproj" />
+  <Project Path="Lab-04p_Linux/Lab-04p_Linux.vcxproj" />
+  <Project Path="Lab_04x/Lab_04x.vcxproj" />
+</Solution>

@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
     ZeroMemory(&sa, sizeof(sa));
     sa.nLength = sizeof(sa);
     sa.bInheritHandle = TRUE;       // Разрешаем дочерним процессам наследовать дескрипторы
-    sa.lpSecurityDescriptor = NULL; // Стандартные пд 
+    sa.lpSecurityDescriptor = NULL; 
 
     if (!CreatePipe(&hRead, &hWrite, &sa, 0))
     {
