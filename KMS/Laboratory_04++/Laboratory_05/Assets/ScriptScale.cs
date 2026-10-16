@@ -14,8 +14,8 @@ public class ScriptScale : MonoBehaviour
     private void FixedUpdate()
     {
         Vector3 scale = transform.localScale;
-        scale.x = Mathf.Min(scale.x + speed * Time.fixedDeltaTime);
-        scale.y = Mathf.Min(scale.y + speed * Time.fixedDeltaTime);
+        scale.x += speed * Time.fixedDeltaTime;
+        scale.y += speed * Time.fixedDeltaTime;
         transform.localScale = scale;
 
         Collider[] hits = Physics.OverlapBox(
@@ -29,9 +29,6 @@ public class ScriptScale : MonoBehaviour
                 continue;
 
             Rigidbody body = hit.attachedRigidbody;
-
-            if (body == null || body.isKinematic)
-                continue;
 
             if (Physics.ComputePenetration(
                 hit,

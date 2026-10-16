@@ -6,7 +6,6 @@ const PORT = 5000;
 
 
 const server = http.createServer((req, res) => {
-
     const base_url = `http://${req.headers.host}`;
     const parsed_url = new URL(req.url, base_url);
 

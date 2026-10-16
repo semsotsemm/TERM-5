@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Лабораторная работа 05-01</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 700px; margin: 0 auto; }
+        .block { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        input { margin: 5px 0; padding: 6px; width: 100%; box-sizing: border-box; }
+        button { margin-top: 8px; padding: 8px 14px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+<h2>Управление БД (05-01)</h2>
+
+<div class="block">
+    <h3>Поля записи</h3>
+    <input type="number" id="id" placeholder="ID">
+    <input type="text" id="name" placeholder="ФИО">
+    <input type="date" id="bday">
+    <div>
+        <button onclick="get_all()">GET (Все)</button>
+        <button onclick="post_row()">POST (Добавить)</button>
+        <button onclick="put_row()">PUT (Обновить)</button>
+        <button onclick="delete_row()">DELETE (Удалить по ID)</button>
+        <button onclick="get_stats()">GET Статистика (/api/ss)</button>
+    </div>
+</div>
+
+<div class="block">
+    <h3>Ответ сервера:</h3>
+    <pre id="output">Нажмите кнопку для отправки запроса...</pre>
+</div>
+
+<script>
+    const output = document.getElementById("output");
+
+    async function get_all()
+    {
+        const res = await fetch("/api/db", { method: "GET" });
+        const text = await res.text();
+        output.textContent = format_output(text);
+    }
+
+    async function post_row()
+    {
+        const body = {
+            id: Number(document.getElementById("id").value),
+            name: document.getElementById("name").value,
+            bday: document.getElementById("bday").value
+        };
+        const res = await fetch("/api/db", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const text = await res.text();
+        output.textContent = format_output(text);
+    }
+
+    async function put_row()
+    {
+        const body = {
+            id: Number(document.getElementById("id").value),
+            name: document.getElementById("name").value,
+            bday: document.getElementById("bday").value
+        };
+        const res = await fetch("/api/db", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const text = await res.text();
+        output.textContent = format_output(text);
+    }
+
+    async function delete_row()
+    {
+        const id = document.getElementById("id").value;
+        const res = await fetch(`/api/db?id=${id}`, { method: "DELETE" });
+        const text = await res.text();
+        output.textContent = format_output(text);
+    }
+
+    async function get_stats()
+    {
+        const res = await fetch("/api/ss", { method: "GET" });
+        const text = await res.text();
+        output.textContent = format_output(text);
+    }
+
+    function format_output(text)
+    {
+        try
+        {
+            return JSON.stringify(JSON.parse(text), null, 4);
+        }
+        catch
+        {
+            return text;
+        }
+    }
+</script>
+</body>
+</html>
