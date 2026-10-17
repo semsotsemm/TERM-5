@@ -16,12 +16,19 @@ const server = http.createServer((req, res) => {
         {
             case "GET":
             {
-                db.emit("GET", (err, data) => {
+                const id = parsed_url.searchParams.get("id");
+                db.emit("GET", id, (err, data) => {
                     if (err)
                     {
-                        res.setHeader("Content-Type", "text/plain");
+                        res.setHeader("Content-Type", "text/plain; charset=utf-8");
                         res.statusCode = 500;
                         res.end(`Ошибка на стороне сервера: ${err}`);
+                    }
+                    else if (id && !data)
+                    {
+                        res.statusCode = 404;
+                        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+                        res.end(`Запись с id ${id} не найдена в базе данных`);
                     }
                     else
                     {

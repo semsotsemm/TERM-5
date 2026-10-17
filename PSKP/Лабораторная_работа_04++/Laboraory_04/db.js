@@ -33,14 +33,17 @@ class DB extends Eventemitter {
     constructor() {
         super();
 
-        this.on("GET", async (callback) => {
-            try
-            {
-                const data = await this.SelectAllRows()
-                callback(null, data);
+        this.on("GET", async (id, callback) => {
+            try {
+                if (id) {
+                    const data = await this.SelectRowById(id);
+                    callback(null, data);
+                } else {
+                    const data = await this.SelectAllRows();
+                    callback(null, data);
+                }
             }
-            catch(error)
-            {
+            catch(error) {
                 callback(error, null);
             }
         });
@@ -104,6 +107,11 @@ class DB extends Eventemitter {
             return new_row;
         }
         return null;
+    }
+
+    async SelectRowById(row_id) {
+        const row = dbArray.find(item => item.id === Number(row_id));
+        return row ? row : null;
     }
 
     async DeleteRow(row_id)
