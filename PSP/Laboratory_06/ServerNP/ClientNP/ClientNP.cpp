@@ -1,131 +1,39 @@
-﻿#include <iostream>
-#include <windows.h>
-#include <string>
+#include "../PipeCommon.h"
 
-using namespace std;
-
-string SetErrorMessageText(string message_text, int error_code)
+int wmain(int argc, wchar_t* argv[])
 {
-    string error_message = message_text;
-    error_message += to_string(error_code) + ": ";
-
-    switch (error_code)
-    {
-        case ERROR_FILE_NOT_FOUND:
-            error_message += "Файл (или канал) не найден.\n";
-            break;
-        case ERROR_PATH_NOT_FOUND:
-            error_message += "Путь не найден.\n";
-            break;
-        case ERROR_ACCESS_DENIED:
-            error_message += "Доступ запрещен. Недостаточно прав.\n";
-            break;
-        case ERROR_INVALID_HANDLE:
-            error_message += "Неверный дескриптор канала.\n";
-            break;
-        case ERROR_OUTOFMEMORY:
-            error_message += "Недостаточно памяти для выполнения операции.\n";
-            break;
-        case ERROR_INVALID_PARAMETER:
-            error_message += "Передан неверный параметр в функцию API.\n";
-            break;
-        case ERROR_BROKEN_PIPE:
-            error_message += "Канал был разорван (клиент отключился).\n";
-            break;
-        case ERROR_PIPE_BUSY:
-            error_message += "Все экземпляры канала заняты.\n";
-            break;
-        case ERROR_NO_DATA:
-            error_message += "Канал закрывается, нет данных.\n";
-            break;
-        case ERROR_PIPE_NOT_CONNECTED:
-            error_message += "Нет процесса на другом конце канала.\n";
-            break;
-        case ERROR_PIPE_CONNECTED:
-            error_message += "Процесс (клиент) уже подключен к каналу.\n";
-            break;
-        case ERROR_PIPE_LISTENING:
-            error_message += "Ожидание подключения к каналу.\n";
-            break;
-        case ERROR_OPERATION_ABORTED:
-            error_message += "Операция отменена.\n";
-            break;
-        default:
-            error_message += "Неизвестная системная ошибка.\n";
-            break;
-    }
-
-    return error_message;
-}
-
-int main()
-{
-    setlocale(LC_CTYPE, "Russian");
-    HANDLE client_handle = INVALID_HANDLE_VALUE;
-
+    InitConsole();
+    HANDLE client = INVALID_HANDLE_VALUE;
     try
     {
-        cout << "Подключение к каналу...\n";
-        DWORD share_mode = 0;
-        LPSECURITY_ATTRIBUTES security_attributes = NULL;
-        DWORD flags_and_attributes = 0;
-        HANDLE template_file = NULL;
-        LPCWSTR pipe_name = L"\\\\DESKTOP-1ESRE1C\\pipe\\Tube";
-
-        client_handle = CreateFile(
-            pipe_name,
-            GENERIC_READ | GENERIC_WRITE,
-            share_mode,
-            security_attributes,
-            OPEN_EXISTING,
-            flags_and_attributes,
-            template_file
-        );
-
-        if (client_handle == INVALID_HANDLE_VALUE)
+        const std::wstring pipeName = GetPipeName(argc, argv);
+        std::cout << "Подключение к " << Utf8(pipeName) << std::endl;
+        client = OpenPipe(pipeName);
+        SetMessageMode(client);
+        std::cout << "Успешное подключение к серверу." << std::endl;
+        const char request[] = "Привет от ClientNP!";
+        for (int i = 0; i < 3; ++i)
         {
-            throw SetErrorMessageText("Ошибка CreateFile: ", GetLastError());
-        }
-        cout << "Успешное подключение к серверу по каналу Tube.\n";
-
-        char writeBuf[] = "Привет от ClientNP!";
-        char readBuf[512];
-        DWORD bytesWritten, bytesRead;
-
-        for (int i = 0; i < 3; i++) 
-        {
-            if (!WriteFile(client_handle, writeBuf, sizeof(writeBuf), &bytesWritten, NULL))
-            {
+            DWORD written = 0;
+            if (!WriteFile(client, request, sizeof(request), &written, nullptr))
                 throw SetErrorMessageText("Ошибка WriteFile: ", GetLastError());
-            }
-
-            if (!ReadFile(client_handle, readBuf, sizeof(readBuf), &bytesRead, NULL)) 
-            {
-                throw SetErrorMessageText("Ошибка ReadFile: ", GetLastError());
-            }
-
-            readBuf[bytesRead] = '\0';
-            cout << "Получено от сервера: " << readBuf << endl;
-            Sleep(1000);
+            if (written != sizeof(request))
+                throw std::string("Запрос записан не полностью.\n");
+            std::string reply;
+            if (!ReadPipeMessage(client, reply))
+                throw SetErrorMessageText("Сервер отключился: ", ERROR_BROKEN_PIPE);
+            std::cout << "Получено от сервера: " << reply << std::endl;
+            if (i != 2) Sleep(1000);
         }
-
-        cout << "Закрытие канала...\n";
-        if (!CloseHandle(client_handle))
-        {
-            throw SetErrorMessageText("Ошибка CloseHandle: ", GetLastError());
-        }
-        cout << "Клиент завершает работу.\n";
+        CloseHandle(client);
+        client = INVALID_HANDLE_VALUE;
+        std::cout << "Клиент завершает работу." << std::endl;
+        return 0;
     }
-    catch (string error_message)
+    catch (const std::string& error)
     {
-        cerr << error_message << "\n";
-
-        if (client_handle != INVALID_HANDLE_VALUE)
-        {
-            CloseHandle(client_handle);
-        }
+        std::cerr << error << std::endl;
+        if (client != INVALID_HANDLE_VALUE) CloseHandle(client);
+        return 1;
     }
-
-    system("pause");
-    return 0;
 }

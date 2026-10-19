@@ -5,3 +5,5 @@ BEGIN
     DBMS_OUTPUT.PUT_LINE(c_str || (c_num * 5));
 END;
 /
+
+-- алина подрез

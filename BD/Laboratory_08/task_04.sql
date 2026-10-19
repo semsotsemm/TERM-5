@@ -8,4 +8,6 @@ BEGIN
   END;
   DBMS_OUTPUT.PUT_LINE('Конец');
 END;
-/
+/   
+
+--диапазон анонимн бл
