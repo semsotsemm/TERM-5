@@ -2,29 +2,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <atomic>
 
-volatile bool keep_running = true;
+std::atomic_bool keep_running{ true };
 double total_pi = 0.0;
 long long current_n = 0;
-long long CHUNK_SIZE = 4000;
+long long CHUNK_SIZE = 5000;
 LPVOID main_fiber;
 
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType) {
     if (fdwCtrlType == CTRL_C_EVENT) {
-        keep_running = false;
+        keep_running.store(false, std::memory_order_relaxed);
         return TRUE;
     }
     return FALSE;
 }
 
 void WINAPI FiberFunc(LPVOID lpParameter) {
-    while (keep_running) {
+    while (keep_running.load(std::memory_order_relaxed)) {
         long long start = current_n;
         current_n += CHUNK_SIZE;
 
         double partial_sum = 0.0;
         for (long long i = start; i < start + CHUNK_SIZE; i++) {
-            if (!keep_running) break;
+            if (!keep_running.load(std::memory_order_relaxed)) break;
 
             double term = 1.0 / (2.0 * i + 1.0);
             if (i % 2 != 0) {
@@ -58,13 +59,13 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < num_fibers; i++) {
         fibers[i] = CreateFiber(0, FiberFunc, NULL);
         if (!fibers[i]) {
-            keep_running = false;
+            keep_running.store(false, std::memory_order_relaxed);
         }
     }
 
-    while (keep_running) {
+    while (keep_running.load(std::memory_order_relaxed)) {
         for (int i = 0; i < num_fibers; i++) {
-            if (!keep_running) break;
+            if (!keep_running.load(std::memory_order_relaxed)) break;
             SwitchToFiber(fibers[i]);
         }
     }

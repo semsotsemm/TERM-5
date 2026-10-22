@@ -7,6 +7,8 @@ __declspec(thread) int* localBuffer = NULL;
 __declspec(thread) int localCount = 0;
 
 int* globalPrimes = NULL;
+
+// Сравнительная таблица рещультатов
 int globalIndex = 0;
 
 typedef struct {
@@ -29,7 +31,7 @@ DWORD WINAPI FindPrimes(LPVOID lpParam) {
     if (capacity <= 0) return 0;
 
     localBuffer = (int*)malloc(capacity * sizeof(int));
-    if (!localBuffer) return 0;
+    if (!localBuffer) return ERROR_OUTOFMEMORY;
 
     localCount = 0;
 
@@ -39,12 +41,16 @@ DWORD WINAPI FindPrimes(LPVOID lpParam) {
         }
     }
 
-    for (int i = 0; i < localCount; i++) {
+    for (int i = 0; i < localCount; ++i) {
         globalPrimes[globalIndex] = localBuffer[i];
-        globalIndex++;
+        int oldIndex = globalIndex;
+        Sleep(1);
+        globalIndex = oldIndex + 1;
     }
 
     free(localBuffer);
+    localBuffer = NULL;
+    localCount = 0;
     return 0;
 }
 
@@ -91,10 +97,17 @@ int main(int argc, char* argv[]) {
 
         hThreads[i] = CreateThread(NULL, 0, FindPrimes, &tArgs[i], 0, NULL);
         if (hThreads[i] == NULL) {
-            for (int j = 0; j < i; j++) {
-                TerminateThread(hThreads[j], 0);
+            DWORD error = GetLastError();
+            fprintf(stderr, "CreateThread failed: %lu\n", error);
+
+            for (int j = 0; j < i; ++j) {
+                if (WaitForSingleObject(hThreads[j], INFINITE) != WAIT_OBJECT_0) {
+                    fprintf(stderr, "WaitForSingleObject failed: %lu\n", GetLastError());
+                    return 1;
+                }
                 CloseHandle(hThreads[j]);
             }
+
             free(globalPrimes);
             free(hThreads);
             free(tArgs);
@@ -102,12 +115,45 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    WaitForMultipleObjects(numThreads, hThreads, TRUE, INFINITE);
+    bool workersOk = true;
+
+    for (int i = 0; i < numThreads; ++i) {
+        if (WaitForSingleObject(hThreads[i], INFINITE) != WAIT_OBJECT_0) {
+            fprintf(stderr, "WaitForSingleObject failed: %lu\n", GetLastError());
+            return 1;
+        }
+
+        DWORD exitCode;
+        if (!GetExitCodeThread(hThreads[i], &exitCode)) {
+            fprintf(stderr, "GetExitCodeThread failed: %lu\n", GetLastError());
+            workersOk = false;
+        }
+        else if (exitCode != 0) {
+            fprintf(stderr, "Worker %d failed: %lu\n", i, exitCode);
+            workersOk = false;
+        }
+    }
+
+    if (!workersOk) {
+        for (int i = 0; i < numThreads; ++i) {
+            CloseHandle(hThreads[i]);
+        }
+        free(globalPrimes);
+        free(hThreads);
+        free(tArgs);
+        return 1;
+    }
 
     QueryPerformanceCounter(&end);
     double elapsedTime = (double)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
 
     qsort(globalPrimes, globalIndex, sizeof(int), compare);
+
+    printf("Count: %d\n", globalIndex);
+    for (int i = 0; i < globalIndex; ++i) {
+        printf("%d ", globalPrimes[i]);
+    }
+    printf("\n");
 
     printf("Time: %f seconds\n", elapsedTime);
 

@@ -3,12 +3,16 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="Lab-03d-client-bench/Lab-03d-client-bench.vcxproj" Id="d8eeeded-4c80-4b2f-9c9c-aad914006477" />
+  <Project Path="Lab-03d-server-bench/Lab-03d-server-bench.vcxproj" Id="f76e5e09-7f3e-41e9-9908-d50eead453a9" />
   <Project Path="Lab-04a/Lab-04a.vcxproj" Id="85030806-9873-4677-b4f8-000bd3f6b9a0" />
   <Project Path="Lab-04b/Lab-04b.vcxproj" Id="fee0c2e4-842b-46aa-9cb0-86f00ad0b034" />
   <Project Path="Lab-04c/Lab-04c.vcxproj" Id="f614cd9b-415b-4029-9615-8ce63a75130b" />
   <Project Path="Lab-04d/Lab-04d.vcxproj" Id="36afed82-c769-46cd-b07f-15b245fad201" />
   <Project Path="Lab-04e/Lab-04e.vcxproj" Id="caea2e3c-533b-4d0d-b372-4d146f3b2245" />
+  <Project Path="Lab-04p-bench/Lab-04p-bench.vcxproj" Id="b1255638-e7a1-4347-bda7-6dae0089a870" />
   <Project Path="Lab-04p/Lab-04p.vcxproj" Id="bb722292-5295-4f39-9f77-5c32c19e753f" />
+  <Project Path="Lab-04p2-bench/Lab-04p2-bench.vcxproj" Id="1074c760-2b75-42b7-b383-bbfaba0bd01f" />
   <Project Path="Lab-04p2/Lab-04p2.vcxproj" Id="7bbd06a5-444e-47cc-830d-7d6a671f8eda" />
   <Project Path="Lab-04pi/Lab-04pi.vcxproj" Id="0a7671d0-6386-422f-9c69-077703b756cc" />
   <Project Path="Lab_04x/Lab_04x.vcxproj" Id="b436d5c9-988a-456d-83f7-ef6ea2e52872" />

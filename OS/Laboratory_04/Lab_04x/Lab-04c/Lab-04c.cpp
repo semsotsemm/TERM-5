@@ -95,9 +95,33 @@ int main() {
 
     srand((unsigned int)time(NULL) ^ tid);
 
+    wprintf(L"PID=%lu MAIN=%lu FIRST=%lu SECOND=%lu\n",
+        pid, tid, dwThreadId1, dwThreadId2);
+
     for (int i = 0; i < 100; ++i) {
         if (i == 49) {
-            TerminateThread(hThreads[1], 0);
+            wprintf(L"MAIN iteration 50: terminating SECOND=%lu\n", dwThreadId2);
+
+            if (!TerminateThread(hThreads[1], 0)) {
+                wprintf(L"TerminateThread failed: %lu\n", GetLastError());
+            }
+            else {
+                DWORD waitResult = WaitForSingleObject(hThreads[1], INFINITE);
+
+                if (waitResult != WAIT_OBJECT_0) {
+                    wprintf(L"WaitForSingleObject failed: %lu\n", GetLastError());
+                }
+                else {
+                    DWORD exitCode;
+                    if (!GetExitCodeThread(hThreads[1], &exitCode)) {
+                        wprintf(L"GetExitCodeThread failed: %lu\n", GetLastError());
+                    }
+                    else {
+                        wprintf(L"SECOND=%lu termination confirmed, exit=%lu\n",
+                            dwThreadId2, exitCode);
+                    }
+                }
+            }
         }
 
         wchar_t u_char = username[i % user_len];

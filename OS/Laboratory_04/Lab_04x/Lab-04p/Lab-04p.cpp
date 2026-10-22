@@ -5,6 +5,7 @@
 
 int* globalPrimes = NULL;
 int globalIndex = 0;
+DWORD tlsIndex = TLS_OUT_OF_INDEXES;
 
 typedef struct {
     int start;
@@ -19,17 +20,41 @@ bool isPrime(int n) {
     return true;
 }
 
-DWORD WINAPI FindPrimes(LPVOID lpParam) {
+DWORD WINAPI L4Primes(LPVOID lpParam) {
     ThreadArgs* args = (ThreadArgs*)lpParam;
-    for (int i = args->start; i <= args->end; i++) {
-        if (isPrime(i)) {
-            globalPrimes[globalIndex] = i;
-            int temp = globalIndex;
-            Sleep(1);
+    int capacity = args->end - args->start + 1;
+    if (capacity <= 0) return 0;
 
-            globalIndex = temp + 1;
-        }
+    int* buffer = (int*)malloc((size_t)capacity * sizeof(int));
+    if (!buffer) return ERROR_OUTOFMEMORY;
+
+    if (!TlsSetValue(tlsIndex, buffer)) {
+        DWORD error = GetLastError();
+        free(buffer);
+        return error;
     }
+
+    int* local = (int*)TlsGetValue(tlsIndex);
+    if (!local) {
+        TlsSetValue(tlsIndex, NULL);
+        free(buffer);
+        return ERROR_INVALID_DATA;
+    }
+
+    int count = 0;
+    for (int n = args->start; n <= args->end; ++n) {
+        if (isPrime(n)) local[count++] = n;
+    }
+
+    for (int i = 0; i < count; ++i) {
+        globalPrimes[globalIndex] = local[i];
+        int oldIndex = globalIndex;
+        Sleep(1);
+        globalIndex = oldIndex + 1;
+    }
+
+    free(buffer);
+    if (!TlsSetValue(tlsIndex, NULL)) return GetLastError();
     return 0;
 }
 
@@ -64,18 +89,34 @@ int main(int argc, char* argv[]) {
     int chunkSize = rangeSize / numThreads;
     int remainder = rangeSize % numThreads;
     int currentStart = lower;
+    tlsIndex = TlsAlloc();
+    if (tlsIndex == TLS_OUT_OF_INDEXES) {
+        fprintf(stderr, "TlsAlloc failed: %lu\n", GetLastError());
+        free(globalPrimes);
+        free(hThreads);
+        free(tArgs);
+        return 1;
+    }
 
     for (int i = 0; i < numThreads; i++) {
         tArgs[i].start = currentStart;
         tArgs[i].end = currentStart + chunkSize - 1 + (i < remainder ? 1 : 0);
         currentStart = tArgs[i].end + 1;
 
-        hThreads[i] = CreateThread(NULL, 0, FindPrimes, &tArgs[i], 0, NULL);
+        hThreads[i] = CreateThread(NULL, 0, L4Primes, &tArgs[i], 0, NULL);
         if (hThreads[i] == NULL) {
-            for (int j = 0; j < i; j++) {
-                TerminateThread(hThreads[j], 0);
+            DWORD error = GetLastError();
+            fprintf(stderr, "CreateThread failed: %lu\n", error);
+
+            for (int j = 0; j < i; ++j) {
+                if (WaitForSingleObject(hThreads[j], INFINITE) != WAIT_OBJECT_0) {
+                    fprintf(stderr, "WaitForSingleObject failed: %lu\n", GetLastError());
+                    return 1;
+                }
                 CloseHandle(hThreads[j]);
             }
+
+            TlsFree(tlsIndex);
             free(globalPrimes);
             free(hThreads);
             free(tArgs);
@@ -83,10 +124,40 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    WaitForMultipleObjects(numThreads, hThreads, TRUE, INFINITE);
+    bool workersOk = true;
+
+    for (int i = 0; i < numThreads; ++i) {
+        if (WaitForSingleObject(hThreads[i], INFINITE) != WAIT_OBJECT_0) {
+            fprintf(stderr, "WaitForSingleObject failed: %lu\n", GetLastError());
+            return 1;
+        }
+
+        DWORD exitCode;
+        if (!GetExitCodeThread(hThreads[i], &exitCode)) {
+            fprintf(stderr, "GetExitCodeThread failed: %lu\n", GetLastError());
+            workersOk = false;
+        }
+        else if (exitCode != 0) {
+            fprintf(stderr, "Worker %d failed: %lu\n", i, exitCode);
+            workersOk = false;
+        }
+    }
+
+    if (!workersOk) {
+        for (int i = 0; i < numThreads; ++i) {
+            CloseHandle(hThreads[i]);
+        }
+        TlsFree(tlsIndex);
+        free(globalPrimes);
+        free(hThreads);
+        free(tArgs);
+        return 1;
+    }
 
     qsort(globalPrimes, globalIndex, sizeof(int), compare);
 
+    printf("Count: %d\n", globalIndex);
+        
     for (int i = 0; i < globalIndex; i++) {
         if (globalPrimes[i] != 0) {
             printf("%d ", globalPrimes[i]);
@@ -97,6 +168,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < numThreads; i++) {
         CloseHandle(hThreads[i]);
     }
+
+    TlsFree(tlsIndex);
 
     free(globalPrimes);
     free(hThreads);

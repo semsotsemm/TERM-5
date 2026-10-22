@@ -57,7 +57,6 @@ int main() {
 
     DWORD processId = GetCurrentProcessId();
     printf("--- Запуск приложения Lab-04a (PID: %lu) ---\n", processId);
-    printf("У вас есть около 50 секунд, чтобы изучить потоки в Process Explorer!\n\n");
 
     int iters_main = 100;
     int iters_t1 = 55;
