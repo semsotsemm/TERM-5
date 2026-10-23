@@ -6,7 +6,7 @@ public class CubeClick : MonoBehaviour, IPointerClickHandler
     public void OnPointerClick(PointerEventData event_data)
     {
         float red = Random.Range(0.0f, 1.0f);
-        float green = Random.Range(0.0f, 1.0f);
+        float green = Random.Range(0.0f, 1.0f); 
         float blue = Random.Range(0.0f, 1.0f);
 
         Color new_color = new Color(red, green, blue);

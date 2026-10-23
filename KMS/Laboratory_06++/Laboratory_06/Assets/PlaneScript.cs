@@ -1,4 +1,3 @@
-using JetBrains.Annotations;
 using UnityEngine;
 
 public class PlaneScript : MonoBehaviour
@@ -18,7 +17,6 @@ public class PlaneScript : MonoBehaviour
         float min_z = mesh_renderer.bounds.min.z;
         float max_z = mesh_renderer.bounds.max.z;
 
-
         float rand_x = Random.Range(min_x, max_x);  
         float rand_z = Random.Range(min_z, max_z);
         float pos_y = transform.position.y + 5.0f;
@@ -37,7 +35,7 @@ public class PlaneScript : MonoBehaviour
         }
 
         if (Input.GetKeyDown(KeyCode.W))
-        {
+        {   
             transform.Rotate(0f, 0f, 0.5f);
         }
     }

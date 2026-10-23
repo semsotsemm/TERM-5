@@ -14,8 +14,8 @@ public class ScriptScale : MonoBehaviour
     private void FixedUpdate()
     {
         Vector3 scale = transform.localScale;
-        scale.x += speed * Time.fixedDeltaTime;
-        scale.y += speed * Time.fixedDeltaTime;
+        scale.x += speed * Time.deltaTime;
+        scale.y += speed * Time.deltaTime;
         transform.localScale = scale;
 
         Collider[] hits = Physics.OverlapBox(

@@ -1,93 +1,139 @@
-const EventEmitter = require("events");
+const Eventemitter = require("events");
 
-class DB extends EventEmitter
-{
-    constructor()
+let dbArray = [
     {
+        "id": 1,
+        "name": "Иванов Иван Иванович",
+        "bday": "12.06.2005"
+    },
+    {
+        "id": 2,
+        "name": "Петров Петр Петрович",
+        "bday": "18.09.2005"
+    },
+    {
+        "id": 3,
+        "name": "Никитин Никита Никитьич",
+        "bday": "22.12.2005"
+    },
+    {
+        "id": 4,
+        "name": "Алексеев Алексей Алексеевич",
+        "bday": "17.04.2005"
+    },
+    {
+        "id": 5,
+        "name": "Александров Александр Александрович",
+        "bday": "01.01.2005"
+    }
+]
+
+
+class DB extends Eventemitter {
+    constructor() {
         super();
-        this.db_data = [
-            { id: 1, name: "Иванов И.И.", bday: "2001-01-01" },
-            { id: 2, name: "Петров П.П.", bday: "2002-02-02" },
-            { id: 3, name: "Сидоров С.С.", bday: "2003-03-03" }
-        ];
+
+        this.on("GET", async (id, callback) => {
+            try {
+                if (id) {
+                    const data = await this.SelectRowById(id);
+                    callback(null, data);
+                } else {
+                    const data = await this.SelectAllRows();
+                    callback(null, data);
+                }
+            }
+            catch(error) {
+                callback(error, null);
+            }
+        });
+
+        this.on("POST", async (request_body, callback) => {
+            try
+            {
+                const inserted_row = await this.InsertNewRow(request_body)
+                callback(null, inserted_row);
+            }
+            catch(error)
+            {
+                callback(error, null);
+            }
+        });
+
+        this.on("PUT", async (request_body, callback) => {
+            try
+            {
+                const updated_row = await this.UpdateRow(request_body)
+                callback(null, updated_row);
+            }
+            catch(error)
+            {
+                callback(error, null);
+            }
+        });
+
+        this.on("DELETE", async (row_id, callback) => {
+            try
+            {
+                const deleted = await this.DeleteRow(row_id);
+                callback(null, deleted);
+            }
+            catch(error)
+            {
+                callback(error, null);
+            }
+        });
+
+        this.on("COMMIT", async(callback) => {
+            const commited_rows = await this.commit();
+            callback(null, commited_rows);
+        });
     }
 
-    select(callback)
+    async commit()
     {
-        callback(null, this.db_data);
+        return dbArray.length;
     }
 
-    insert(row, callback)
+    async SelectAllRows()
     {
-        if (!row.id || !row.name || !row.bday)
-        {
-            return callback("Не все поля (id, name, bday) заполнены", null);
-        }
-
-        const exists = this.db_data.find(item => item.id == row.id);
-        if (exists)
-        {
-            return callback(`Запись с id ${row.id} уже существует`, null);
-        }
-
-        this.db_data.push(row);
-        callback(null, row);
+        return dbArray;
     }
 
-    update(row, callback)
+    async InsertNewRow(row)
     {
-        const index = this.db_data.findIndex(item => item.id == row.id);
-        if (index === -1)
-        {
-            return callback(`Запись с id ${row.id} не найдена`, null);
-        }
-
-        this.db_data[index] = row;
-        callback(null, row);
+        const max_index = dbArray.length > 0 ? Math.max(...dbArray.map(item => item.id)): 0;
+        row.id = max_index + 1;
+        dbArray.push(row);
+        return row;
     }
 
-    delete(id, callback)
+    async UpdateRow(new_row)
     {
-        const index = this.db_data.findIndex(item => item.id == id);
-        if (index === -1)
+        const index = dbArray.findIndex(item => item.id === new_row.id);
+        if (index > -1)
         {
-            return callback(null, null);
+            dbArray[index] = new_row;
+            return new_row;
         }
-
-        const deleted_row = this.db_data.splice(index, 1)[0];
-        callback(null, deleted_row);
+        return null;
     }
 
-    commit(callback)
+    async SelectRowById(row_id) {
+        const row = dbArray.find(item => item.id === Number(row_id));
+        return row ? row : null;
+    }
+
+    async DeleteRow(row_id)
     {
-        // Имитация выполнения фиксации состояния БД
-        if (callback)
+        const index = dbArray.findIndex(item => item.id === Number(row_id));
+        if (index > -1)
         {
-            callback(null, true);
+            const deleted_row = dbArray.splice(index, 1)[0];
+            return deleted_row;
         }
+        return null;
     }
 }
 
-const db = new DB();
-
-db.on("GET", (callback) => {
-    db.select(callback);
-});
-
-db.on("POST", (row, callback) => {
-    db.insert(row, callback);
-});
-
-db.on("PUT", (row, callback) => {
-    db.update(row, callback);
-});
-
-db.on("DELETE", (id, callback) => {
-    db.delete(id, callback);
-});
-
-db.on("COMMIT", (callback) => {
-    db.commit(callback);
-});
-
-module.exports = db;
+module.exports = new DB();

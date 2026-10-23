@@ -1,105 +1,229 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Лабораторная работа 05-01</title>
+    <title>ПСКП Лабораторная работа 4</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 700px; margin: 0 auto; }
-        .block { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
-        input { margin: 5px 0; padding: 6px; width: 100%; box-sizing: border-box; }
-        button { margin-top: 8px; padding: 8px 14px; cursor: pointer; }
-        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button{
+            width: 100px;
+            height: 50px;
+            margin-left:10px;
+            margin-right:10px;
+            border:none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        #btn-get{
+            background: lawngreen;
+        }
+        #btn-post{
+            background: yellow;
+        }
+        #btn-put{
+            background: mediumpurple;
+        }
+        #btn-delete{
+            background: red;
+        }
+        #btn-commit{
+            background: blue;
+        }
     </style>
 </head>
 <body>
-<h2>Управление БД (05-01)</h2>
-
-<div class="block">
-    <h3>Поля записи</h3>
-    <input type="number" id="id" placeholder="ID">
-    <input type="text" id="name" placeholder="ФИО">
-    <input type="date" id="bday">
-    <div>
-        <button onclick="get_all()">GET (Все)</button>
-        <button onclick="post_row()">POST (Добавить)</button>
-        <button onclick="put_row()">PUT (Обновить)</button>
-        <button onclick="delete_row()">DELETE (Удалить по ID)</button>
-        <button onclick="get_stats()">GET Статистика (/api/ss)</button>
-    </div>
+<h1 style="text-align: center">Работа с бд</h1>
+<div style="text-align: center">
+    <button id="btn-get">GET</button>
+    <button id="btn-post">POST</button>
+    <button id="btn-put">PUT</button>
+    <button id="btn-delete">DELETE</button>
+    <button id="btn-commit">COMMIT</button>
 </div>
 
-<div class="block">
-    <h3>Ответ сервера:</h3>
-    <pre id="output">Нажмите кнопку для отправки запроса...</pre>
-</div>
-
+<div id="active-area"></div>
+<div id="result"></div>
 <script>
-    const output = document.getElementById("output");
+    const today = new Date().toISOString().split('T')[0];
+    const active_area = document.getElementById("active-area");
+    const result_block = document.getElementById("result");
 
-    async function get_all()
-    {
-        const res = await fetch("/api/db", { method: "GET" });
-        const text = await res.text();
-        output.textContent = format_output(text);
-    }
-
-    async function post_row()
-    {
-        const body = {
-            id: Number(document.getElementById("id").value),
-            name: document.getElementById("name").value,
-            bday: document.getElementById("bday").value
-        };
-        const res = await fetch("/api/db", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-        const text = await res.text();
-        output.textContent = format_output(text);
-    }
-
-    async function put_row()
-    {
-        const body = {
-            id: Number(document.getElementById("id").value),
-            name: document.getElementById("name").value,
-            bday: document.getElementById("bday").value
-        };
-        const res = await fetch("/api/db", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-        });
-        const text = await res.text();
-        output.textContent = format_output(text);
-    }
-
-    async function delete_row()
-    {
-        const id = document.getElementById("id").value;
-        const res = await fetch(`/api/db?id=${id}`, { method: "DELETE" });
-        const text = await res.text();
-        output.textContent = format_output(text);
-    }
-
-    async function get_stats()
-    {
-        const res = await fetch("/api/ss", { method: "GET" });
-        const text = await res.text();
-        output.textContent = format_output(text);
-    }
-
-    function format_output(text)
-    {
-        try
+    const ShowResult = (data) => {
+        result_block.innerText = JSON.stringify(data, null, 4);
+    };
+    const formatToInputDate = (dateString) => {
+        if (!dateString)
         {
-            return JSON.stringify(JSON.parse(text), null, 4);
+            return "";
         }
-        catch
+        else
         {
-            return text;
+            return dateString.split('.').reverse().join('-');
         }
+    };
+
+    const loadAllClients = () => {
+        fetch("/api/db")
+            .then(res => res.json())
+            .then(data => ShowResult(data))
+            .catch(err => console.error(err));
+    };
+
+    const fillPutInputsById = (id) => {
+        const nameInput = document.getElementById('put-name');
+        const bdayInput = document.getElementById('put-bday');
+
+        fetch(`/api/db?id=${id}`)
+            .then(res => {
+                if (res.status === 404)
+                {
+                    nameInput.value = "";
+                    bdayInput.value = "";
+                    ShowResult({ error: `Запись с id ${id} не найдена` });
+                }
+                else
+                {
+                    return res.json().then(data => {
+                        const client = Array.isArray(data) ? data[0] : data;
+
+                        if (client) {
+                            nameInput.value = client.name || "";
+                            bdayInput.value = formatToInputDate(client.bday);
+                            result_block.innerText = "";
+                        }
+                    });
+                }
+            })
+            .catch(err => console.error(err));
+    };
+
+    const loadClientById = (id) => {
+        if (!id) {
+            loadAllClients();
+            return;
+        }
+        fetch(`/api/db?id=${id}`)
+            .then(res => {
+                if (res.status === 404)
+                {
+                    return ShowResult({ error: `Запись с id ${id} не найдена` });
+                }
+                else
+                {
+                    return res.json().then(data => ShowResult(data));
+                }
+            })
+            .catch(err => console.error(err));
+    };
+
+    document.getElementById('btn-get').onclick = () => {
+        active_area.style.display = "none";
+        loadAllClients();
+    };
+
+    document.getElementById('btn-post').onclick = () => {
+        active_area.style.display = "block";
+        active_area.innerHTML = `
+            <h3>Добавить запись</h3>
+            Имя:
+            <br>
+            <input type="text" id="post-name">
+            <br>
+            <br>
+            Дата рождения:
+            <br>
+            <input type="date" id="post-bday" max="${today}">
+            <br>
+            <br>
+            <button class="action-btn" onclick="sendPost()">Отправить POST</button>
+        `;
+    };
+
+    document.getElementById('btn-put').onclick = () => {
+        active_area.style.display = "block";
+        active_area.innerHTML = `
+            <h3>Изменить запись</h3>
+            ID:
+            <br>
+            <input type="number" id="put-id">
+            <br>
+            <br>
+            Новое имя:
+            <br>
+            <input type="text" id="put-name">
+            <br>
+            <br>
+            Новая дата:
+            <br>
+            <input type="date" id="put-bday" max="${today}">
+            <br>
+            <br>
+            <button class="action-btn" onclick="sendPut()">Отправить PUT</button>
+        `;
+        document.getElementById('put-id').oninput = (e) => fillPutInputsById(e.target.value);
+    };
+
+    document.getElementById('btn-delete').onclick = () => {
+        active_area.style.display = "block";
+        active_area.innerHTML = `
+            <h3>Удалить запись</h3>
+            ID для удаления:
+            <br>
+            <input type="number" id="del-id">
+            <br>
+            <br>
+            <button class="action-btn" onclick="sendDelete()">Отправить DELETE</button>
+        `;
+        document.getElementById('del-id').oninput = (e) => loadClientById(e.target.value);
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString)
+        {
+            return "";
+        }
+        return dateString.split('-').reverse().join('.');
+    };
+
+    function sendPost() {
+        const rawDate = document.getElementById('post-bday').value;
+        const body = {
+            name: document.getElementById('post-name').value,
+            bday: formatDate(rawDate)
+        };
+        fetch('/api/db', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        })
+            .then(res => res.json())
+            .then(data => ShowResult(data));
+    }
+
+    function sendPut() {
+        const rawDate = document.getElementById('put-bday').value;
+        const body = {
+            id: Number(document.getElementById('put-id').value),
+            name: document.getElementById('put-name').value,
+            bday: formatDate(rawDate)
+        };
+        fetch('/api/db', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+            .then(res => res.json())
+            .then(data => ShowResult(data));
+    }
+
+    function sendDelete() {
+        const id = document.getElementById('del-id').value;
+        fetch(`/api/db?id=${id}`, {
+            method: 'DELETE'
+        })
+            .then(res => {
+                if (res.status === 404) return ShowResult({ error: "Запись не найдена" });
+                return res.json().then(data => ShowResult(data));
+            });
     }
 </script>
 </body>

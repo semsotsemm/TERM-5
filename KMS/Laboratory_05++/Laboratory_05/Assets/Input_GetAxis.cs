@@ -9,7 +9,6 @@ public class Input_GetAxis : MonoBehaviour
     {
         float x = Input.GetAxis("Horizontal"); 
         float z = Input.GetAxis("Vertical");
-        // квартирион от жйлреа тайм делта тайм и маштабирования ьбаунс
 
         transform.Translate(x * speed, 0, z * speed);
 
