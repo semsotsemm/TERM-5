@@ -1,0 +1,11 @@
+{
+  "name": "pskp-laboratory-06",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ПСКП, лабораторная работа 06: sendmail и пакеты npm",
+  "dependencies": {
+    "mailparser": "^3.7.4",
+    "sendmail": "1.6.1",
+    "smtp-server": "^3.16.1"
+  }
+}

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>06-02 — отправка почты</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f5f7fa; color: #172b4d; font: 16px/1.5 system-ui, sans-serif; }
+        main { max-width: 680px; margin: 48px auto; padding: 28px; background: white; border: 1px solid #d9e0e9; border-radius: 12px; }
+        h1 { margin: 0 0 12px; font-size: 1.7rem; }
+        p { margin: 8px 0 20px; }
+        label { display: block; font-weight: 600; margin: 18px 0 6px; }
+        input, textarea { width: 100%; border: 1px solid #8898ad; border-radius: 6px; padding: 11px; font: inherit; }
+        textarea { min-height: 160px; resize: vertical; }
+        button { margin-top: 20px; min-height: 46px; padding: 10px 22px; border: 0; border-radius: 6px; color: white; background: #174db7; font: inherit; font-weight: 600; cursor: pointer; }
+        button:hover { background: #123e94; }
+        button:disabled { opacity: .65; cursor: wait; }
+        :focus-visible { outline: 3px solid #174db7; outline-offset: 3px; }
+        a { color: #174db7; }
+        #result { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 20px; }
+        .error { color: #a51616; }
+        @media (max-width: 720px) { main { margin: 16px; padding: 20px; } }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Отправка письма</h1>
+    <p>ПСКП · Лабораторная работа 06 · Приложение 06-02</p>
+    <p id="mode">Загрузка режима отправки…</p>
+    <form id="mail-form">
+        <label for="from">Почта отправителя</label>
+        <input id="from" name="from" type="email" autocomplete="email" placeholder="sender@gmail.com" required>
+        <label for="to">Почта получателя</label>
+        <input id="to" name="to" type="email" placeholder="recipient@gmail.com" required>
+        <label for="message">Сообщение</label>
+        <textarea id="message" name="message" maxlength="10000" required></textarea>
+        <button id="send" type="submit">Отправить письмо</button>
+    </form>
+    <div id="result" role="status" aria-live="polite"></div>
+</main>
+<script>
+    const result = document.getElementById("result");
+    fetch("/api/mode").then(response => response.json()).then(data => {
+        const mode = document.getElementById("mode");
+        mode.textContent = data.mode === "local"
+            ? "Локальный режим: письма поступают в учебный приёмник, без доставки в интернет. "
+            : "Прямая отправка: письмо отправляется почтовому серверу получателя через интернет.";
+        if (data.mode === "local") {
+            const link = document.createElement("a");
+            link.href = "http://localhost:1080";
+            link.target = "_blank";
+            link.rel = "noopener";
+            link.textContent = "Открыть входящие";
+            mode.append(link);
+        }
+    }).catch(() => { document.getElementById("mode").textContent = "Не удалось получить режим сервера."; });
+
+    document.getElementById("mail-form").onsubmit = async event => {
+        event.preventDefault();
+        const button = document.getElementById("send");
+        button.disabled = true;
+        result.className = "";
+        result.textContent = "Отправка…";
+        try {
+            const response = await fetch("/api/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    from: document.getElementById("from").value,
+                    to: document.getElementById("to").value,
+                    message: document.getElementById("message").value
+                })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            result.textContent = `${data.message}\nОт: ${data.from}\nКому: ${data.to}\nОтвет SMTP: ${data.reply}`;
+        } catch (error) {
+            result.className = "error";
+            result.textContent = `Ошибка: ${error.message}`;
+        } finally {
+            button.disabled = false;
+        }
+    };
+</script>
+</body>
+</html>
