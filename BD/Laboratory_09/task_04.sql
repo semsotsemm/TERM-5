@@ -1,0 +1,13 @@
+BEGIN
+  DBMS_OUTPUT.PUT_LINE('Начало');
+  BEGIN
+    RAISE_APPLICATION_ERROR(-20001, 'Ошибка2');
+    EXCEPTION
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Ошибка: ' || SQLERRM);
+  END;
+  DBMS_OUTPUT.PUT_LINE('Конец');
+END;
+/   
+
+--диапазон анонимн бл
