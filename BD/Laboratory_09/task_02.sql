@@ -1,4 +1,12 @@
+DECLARE 
+    pulpits PULPIT%ROWTYPE;
 BEGIN
-    DBMS_OUTPUT.PUT_LINE('Hello World!');
+    SELECT * 
+        INTO pulpits
+        FROM PULPIT pl;
+    
+    EXCEPTION
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE(SQLCODE || ': ' || SQLERRM);
 END;
 /

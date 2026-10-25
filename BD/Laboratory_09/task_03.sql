@@ -1,10 +1,14 @@
-DECLARE
-    v_num NUMBER;
+DECLARE 
+    pulpits PULPIT%ROWTYPE;
 BEGIN
-    v_num := 1 / 0;
+    SELECT * 
+        INTO pulpits
+        FROM PULPIT pl;
+    
     EXCEPTION
-    WHEN OTHERS THEN
-        DBMS_OUTPUT.PUT_LINE('Код ошибки: ' || SQLCODE);
-        DBMS_OUTPUT.PUT_LINE('Сообщение: ' || SQLERRM);
+        WHEN TOO_MANY_ROWS THEN
+            DBMS_OUTPUT.PUT_LINE('-1422: Ошибка в переменую выбрано слишком много значений.');
+        WHEN OTHERS THEN
+            DBMS_OUTPUT.PUT_LINE(SQLCODE || ': ' || SQLERRM);
 END;
 /
