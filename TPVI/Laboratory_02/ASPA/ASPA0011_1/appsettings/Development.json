@@ -1,0 +1,13 @@
+{
+  "Logging": {
+    "Console": {
+      "LogLevel": {
+        "Default": "Trace",
+        "Microsoft": "Error"
+      }
+    },
+    "LogLevel": {
+      "Default": "Trace"
+    }
+  }
+}
