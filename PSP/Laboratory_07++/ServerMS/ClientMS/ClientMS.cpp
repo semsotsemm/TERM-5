@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     {
         if (argc > 6)
         {
-            throw string("Использование: ClientMS [.|имя_ПК|*|список_UNC] [count] [bytes] [Box] [pause_ms]");
+            throw string("Использование: ClientMS [.|имя_ПК] [count] [bytes] [Box] [pause_ms]");
         }
         string target = argc > 1 ? argv[1] : ".";
         DWORD messages_count = argc > 2 ? ReadNumber(argv[2], 1, 1000000) : 1;
@@ -29,7 +29,6 @@ int main(int argc, char* argv[])
         vector<string> mailslot_names = GetTargets(target, slot_name);
         string run_id = to_string(GetCurrentProcessId()) + "-" + to_string(GetTickCount64());
 
-        // Обычный запуск отправляет исходную строку, серия использует номера.
         if (message_size == 0)
         {
             message_size = messages_count == 1 ? static_cast<DWORD>(string(CLIENT_MESSAGE).size()) : 64;
@@ -49,9 +48,7 @@ int main(int argc, char* argv[])
                     "Отправка большого сообщения может завершиться ошибкой.\n";
             }
 
-            // Блок 1. Клиент открывает существующий ящик только на запись.
-            HANDLE mailslot_handle = CreateFileA(mailslot_name.c_str(), GENERIC_WRITE, FILE_SHARE_READ,
-                NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            HANDLE mailslot_handle = CreateFileA(mailslot_name.c_str(), GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
             if (mailslot_handle == INVALID_HANDLE_VALUE)
             {
                 DWORD error_code = GetLastError();
@@ -60,8 +57,7 @@ int main(int argc, char* argv[])
             mailslot_handles.push_back(mailslot_handle);
         }
 
-        cout << "MESSAGES_PER_TARGET=" << messages_count << " MESSAGE_SIZE=" << message_size
-            << " TARGETS=" << mailslot_handles.size() << endl;
+        cout << "MESSAGES_PER_TARGET=" << messages_count << " MESSAGE_SIZE=" << message_size << " TARGETS=" << mailslot_handles.size() << endl;
         if (messages_count > 1)
         {
             cout << "RUN=" << run_id << endl;
@@ -76,7 +72,6 @@ int main(int argc, char* argv[])
         clock_t start_clock = clock();
         QueryPerformanceCounter(&start_time);
 
-        // Блок 2. Не печатаем каждое сообщение, чтобы не измерять скорость консоли.
         for (DWORD i = 1; i <= messages_count; i++)
         {
             string message = messages_count == 1 ? CLIENT_MESSAGE :
@@ -118,9 +113,7 @@ int main(int argc, char* argv[])
             cout << "BYTES_PER_SECOND=" << sent_bytes / total_time << endl;
             cout << "AVERAGE_WRITE_SECONDS=" << total_time / writes_count << endl;
         }
-        cout << "WriteFile выполнены успешно. Факт приема проверьте на сервере.\n";
 
-        // Блок 3. Обратного канала у этой реализации Mailslot нет.
         for (HANDLE& mailslot_handle : mailslot_handles)
         {
             CloseMailslot(mailslot_handle);

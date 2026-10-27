@@ -9,12 +9,10 @@
 using namespace std;
 
 
-// Читаем именно байты сообщения. Завершающий '\0' от клиента не требуется.
 bool ReadMessage(HANDLE mailslot_handle, vector<char>& receive_buffer, string& message)
 {
     DWORD bytes_read = 0;
-    if (!ReadFile(mailslot_handle, receive_buffer.data(),
-        static_cast<DWORD>(receive_buffer.size()), &bytes_read, NULL))
+    if (!ReadFile(mailslot_handle, receive_buffer.data(), static_cast<DWORD>(receive_buffer.size()), &bytes_read, NULL))
     {
         DWORD error_code = GetLastError();
         if (error_code == ERROR_SEM_TIMEOUT)
@@ -28,7 +26,6 @@ bool ReadMessage(HANDLE mailslot_handle, vector<char>& receive_buffer, string& m
 }
 
 
-// Отделяем нумерацию от полезной нагрузки, чтобы учитывать потери и повторы.
 bool GetBenchHeader(const string& message, string& run_id, DWORD& message_number, DWORD& messages_count)
 {
     if (message.rfind("MSBENCH|", 0) != 0)
@@ -38,8 +35,7 @@ bool GetBenchHeader(const string& message, string& run_id, DWORD& message_number
     istringstream stream(message);
     string field, number_text, count_text;
     getline(stream, field, '|');
-    if (!getline(stream, run_id, '|') || run_id.empty() ||
-        !getline(stream, number_text, '|') || !getline(stream, count_text, '|'))
+    if (!getline(stream, run_id, '|') || run_id.empty() || !getline(stream, number_text, '|') || !getline(stream, count_text, '|'))
     {
         return false;
     }
@@ -56,7 +52,6 @@ bool GetBenchHeader(const string& message, string& run_id, DWORD& message_number
 }
 
 
-// Это интервал приема от первого до последнего сообщения, а не RTT.
 bool ReceiveBench(HANDLE mailslot_handle, DWORD maximum_size, DWORD read_timeout)
 {
     vector<char> receive_buffer(maximum_size);
@@ -78,7 +73,6 @@ bool ReceiveBench(HANDLE mailslot_handle, DWORD maximum_size, DWORD read_timeout
     ULONGLONG deadline = GetTickCount64() + read_timeout;
     while (received_count < BENCH_MESSAGES_COUNT)
     {
-        // Ограничиваем общее ожидание: посторонние сообщения не продлевают его.
         ULONGLONG now = GetTickCount64();
         if (now >= deadline)
         {
@@ -176,7 +170,6 @@ int main(int argc, char* argv[])
         string slot_name = argc > 4 ? argv[4] : "Box";
         string mailslot_name = MakeLocalName(slot_name);
 
-        // Блок 1. Сервер всегда создает локальный ящик, даже для сетевых клиентов.
         mailslot_handle = CreateMailslotA(mailslot_name.c_str(), maximum_size, read_timeout, NULL);
         if (mailslot_handle == INVALID_HANDLE_VALUE)
         {
@@ -196,7 +189,6 @@ int main(int argc, char* argv[])
 
         if (mode == "create")
         {
-            // Задание 1: без ReadFile создание и закрытие не блокируют поток.
             CloseMailslot(mailslot_handle);
             cout << "Ящик закрыт. Программа завершилась без ожидания клиента.\n";
             return 0;
@@ -212,7 +204,6 @@ int main(int argc, char* argv[])
         DWORD messages_count = 0;
         while (true)
         {
-            // Блок 2. При пустом ящике блокируется ReadFile, а не CreateMailslot.
             cout << "Ожидание сообщения (ReadFile)...\n" << flush;
             ULONGLONG start_time = GetTickCount64();
             string message;
@@ -232,7 +223,6 @@ int main(int argc, char* argv[])
             }
         }
 
-        // Блок 3. После закрытия серверного дескриптора ящик перестает существовать.
         CloseMailslot(mailslot_handle);
         cout << "Почтовый ящик закрыт.\n";
     }

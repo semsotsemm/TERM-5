@@ -12,7 +12,6 @@ const DWORD DEFAULT_MESSAGE_SIZE = 300;
 const DWORD BENCH_MESSAGES_COUNT = 1000;
 
 
-// Аналог обработчика Winsock из предыдущих работ, но с кодами GetLastError.
 inline string SetErrorMessageText(string message_text, DWORD error_code)
 {
     string error_message = message_text + to_string(error_code) + ": ";
@@ -85,7 +84,6 @@ inline string SetErrorMessageText(string message_text, DWORD error_code)
     }
     default:
     {
-        // Для непредусмотренных кодов получаем системное описание в UTF-8.
         wchar_t system_message[1024]{};
         DWORD length = FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
             NULL, error_code, 0, system_message, 1024, NULL);
@@ -109,7 +107,6 @@ inline string SetErrorMessageText(string message_text, DWORD error_code)
 }
 
 
-// Закрываем дескриптор и не оставляем его для повторного закрытия в catch.
 inline void CloseMailslot(HANDLE& mailslot_handle)
 {
     HANDLE saved_handle = mailslot_handle;
@@ -122,7 +119,6 @@ inline void CloseMailslot(HANDLE& mailslot_handle)
 }
 
 
-// Проверяем все символы аргумента: "1000abc" не считается числом 1000.
 inline DWORD ReadNumber(string text, DWORD minimum, DWORD maximum)
 {
     if (text.empty() || text.find_first_not_of("0123456789") != string::npos)
@@ -155,7 +151,6 @@ inline string MakeLocalName(string slot_name)
 }
 
 
-// Для клиента разрешены локальный адрес, имя ПК, домен и полный UNC-путь.
 inline string MakeClientName(string target, string slot_name)
 {
     if (target.rfind("\\\\", 0) == 0)
@@ -177,7 +172,6 @@ inline string MakeClientName(string target, string slot_name)
 }
 
 
-// Один клиент может открыть несколько адресов и отправить сообщение каждому.
 inline vector<string> GetTargets(string target_list, string slot_name)
 {
     vector<string> targets;
@@ -209,14 +203,13 @@ inline vector<string> GetTargets(string target_list, string slot_name)
 }
 
 
-// Заголовок нужен только для серии: RUN, номер и общее число сообщений.
 inline string MakeBenchMessage(string run_id, DWORD message_number, DWORD messages_count, DWORD message_size)
 {
     string message = "MSBENCH|" + run_id + "|" + to_string(message_number) +
         "|" + to_string(messages_count) + "|";
     if (message.size() > message_size)
     {
-        throw string("Размер сообщения недостаточен для заголовка серии. Используйте 64 байта или больше.");
+        throw string("Размер сообщения недостаточен для заголовка.");
     }
     message.resize(message_size, 'x');
     return message;
