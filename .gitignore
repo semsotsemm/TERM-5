@@ -128,6 +128,7 @@ pnpm-debug.log*
 # VMware virtual machines used by the OS coursework.
 # Keep them locally, but never add their disks, runtime state, or configuration to Git.
 /OS/Laboratory_01/OS/
+/OS/Laboratory_05/OS/.work/
 
 # Other virtual machine and disk-image formats
 *.iso
@@ -141,11 +142,6 @@ pnpm-debug.log*
 *.nvram
 *.scoreboard
 *.lck/
-
-# Microsoft Office temporary lock files
-~$*.docx
-~$*.xlsx
-~$*.pptx
 
 # Temporary files produced while unpacking/rendering a Word report
 /OKG/Laboratory_03/_source_docx/
