@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Лабораторная 6 ПСКП</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        form {
+            width: 100%;
+            max-width: 400px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: #4facfe;
+        }
+
+        button {
+            background-color: #4facfe;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #3b8ecc;
+        }
+    </style>
+</head>
+<body>
+<form action="/send" method="POST">
+    <input name="sender" type="email" placeholder="Почта отправителя" required>
+
+    <input name="purpose" type="email" placeholder="Почта получателя" required>
+
+    <input name="message" placeholder="Введите сообщение" required>
+
+    <button type="submit">Отправить</button>
+</form>
+</body>
+</html>
