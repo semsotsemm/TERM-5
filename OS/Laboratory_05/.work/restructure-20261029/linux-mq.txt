@@ -1,0 +1,6 @@
+MQ: Q0=20 Q1=60 Q2=120; calendar 100/60/40 ms; empty quotas donated; switch cost=0
+{"avg_response":1375.28,"avg_turnaround":18519.02,"avg_waiting":17911.130000000001,"count":100,"cpu_service":28955,"idle":2,"makespan":28957,"migrations":397,"seed":525,"switches":2047,"utilization_percent":99.993093207169252}
+{"avg_full_turnaround_visited":18519.02,"avg_queue_wait":4226.4499999999998,"completed":45,"queue":"Q0","service":8285,"share_percent":28.613365567259542,"visited":100}
+{"avg_full_turnaround_visited":21596.871428571427,"avg_queue_wait":6729.8285714285712,"completed":15,"queue":"Q1","service":7224,"share_percent":24.94905888447591,"visited":70}
+{"avg_full_turnaround_visited":23107.912280701756,"avg_queue_wait":15743.508771929824,"completed":40,"queue":"Q2","service":13446,"share_percent":46.437575548264547,"visited":57}
+Results: /checks/linux-results

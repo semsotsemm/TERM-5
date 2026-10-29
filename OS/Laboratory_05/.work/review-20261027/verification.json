@@ -1,0 +1,26 @@
+{
+  "pages": 45,
+  "screenshots": 37,
+  "tables": 9,
+  "screenshots_unchanged": true,
+  "cover_unchanged": true,
+  "all_pages_visually_reviewed": true,
+  "placeholders": 0,
+  "highlighting": 0,
+  "layout_issues": [],
+  "main_sections": [
+    "Введение",
+    "1 Основы планирования и условия исследования",
+    "2 Исследование планирования в Windows",
+    "3 Исследование планирования в Linux",
+    "4 Моделирование алгоритмов планирования",
+    "5 Многоуровневая очередь с обратной связью",
+    "Заключение",
+    "Список использованных источников",
+    "Приложение А Структура программ и ключевые операции",
+    "Приложение Б Ответы на вопросы для самоконтроля"
+  ],
+  "output": "D:\\WorkSpace\\TERM-5\\OS\\Laboratory_05\\Отчет_ЛР5.docx",
+  "backup": "D:\\WorkSpace\\TERM-5\\OS\\Laboratory_05\\.work\\review-20261027\\Отчет_ЛР5 — до доработки.docx",
+  "sha256": "9c4013f233e937eba213dbca00c37158c334b1e29d2ce071dfd637258e4764e9"
+}

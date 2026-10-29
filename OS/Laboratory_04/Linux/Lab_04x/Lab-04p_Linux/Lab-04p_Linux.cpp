@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
     int lower = atoi(argv[2]);
     int upper = atoi(argv[3]);
 
-    if (numThreads <= 0 || lower > upper) return 1;
+    if (numThreads <= 0 || lower < upper) return 1;
 
     int maxPossiblePrimes = upper - lower + 1;
     globalPrimes = (int*)malloc(maxPossiblePrimes * sizeof(int));

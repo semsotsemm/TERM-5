@@ -1,0 +1,11 @@
+<Solution>
+  <Configurations><Platform Name="x64" /></Configurations>
+  <Project Path="Lab-05a/Lab-05a.vcxproj" />
+  <Project Path="Lab-05x/Lab-05x.vcxproj" />
+  <Project Path="Lab-05b/Lab-05b.vcxproj" />
+  <Project Path="Lab-05c/Lab-05c.vcxproj" />
+  <Project Path="Lab-05SJF/Lab-05SJF.vcxproj" />
+  <Project Path="Lab-05RR/Lab-05RR.vcxproj" />
+  <Project Path="Lab-05CP/Lab-05CP.vcxproj" />
+  <Project Path="Lab-05MQ/Lab-05MQ.vcxproj" />
+</Solution>

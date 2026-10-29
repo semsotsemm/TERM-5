@@ -3,8 +3,9 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Lab-04pi_Linux/Lab-04pi_Linux.vcxproj" />
-  <Project Path="Lab-04px/Lab-04px.vcxproj" />
-  <Project Path="Lab-04p_Linux/Lab-04p_Linux.vcxproj" />
-  <Project Path="Lab_04x/Lab_04x.vcxproj" />
+  <Project Path="Lab-04p2_Linux/Lab-04p2_Linux.vcxproj" Id="f7bfa09e-b838-40a3-8d69-242d69bc4836" />
+  <Project Path="Lab-04pi_Linux/Lab-04pi_Linux.vcxproj" Id="775baf5b-7277-4ab6-bffd-030463b80e61" />
+  <Project Path="Lab-04px/Lab-04px.vcxproj" Id="c412d354-bfce-4bf9-b4b4-9bebc08e6e4d" />
+  <Project Path="Lab-04p_Linux/Lab-04p_Linux.vcxproj" Id="448a3f05-38ee-494e-ba21-862c297d473f" />
+  <Project Path="Lab_04x/Lab_04x.vcxproj" Id="358881dc-e4d7-41a8-ae85-b94045a9875f" />
 </Solution>

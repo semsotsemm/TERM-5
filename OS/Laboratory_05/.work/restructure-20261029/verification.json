@@ -1,0 +1,15 @@
+{
+  "pages": 45,
+  "screenshots_unchanged": 37,
+  "data_tables_unchanged": 9,
+  "all_pages_visually_reviewed": true,
+  "manual_body_page_breaks": 0,
+  "layout_issues": [],
+  "cpp_projects_per_os": 8,
+  "windows_debug_and_release_built": true,
+  "linux_gcc_built_and_all_apps_run": true,
+  "reference_json_and_csv_match": true,
+  "old_directories_archived": "D:\\WorkSpace\\TERM-5\\OS\\Laboratory_05\\.work\\restructure-20261029\\removed-originals",
+  "report_backup": "D:\\WorkSpace\\TERM-5\\OS\\Laboratory_05\\.work\\restructure-20261029\\Отчет_ЛР5 — до правок.docx",
+  "report_sha256": "484811b0598857e0c0750e26baaf7d7b8a63e6d504219f9156b5d802a7c927d8"
+}

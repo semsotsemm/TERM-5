@@ -1,0 +1,14 @@
+{
+  "windows_projects": 8,
+  "reference_comparison_exact": true,
+  "mq_seeds": [
+    0,
+    1,
+    525,
+    999
+  ],
+  "mq_full_result_exact": true,
+  "boundary_cases": 45,
+  "native_info_workload_threads": true,
+  "invalid_arguments_rejected": true
+}

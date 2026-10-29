@@ -41,7 +41,7 @@ void* Lab_04x(void* arg) {
 
         wprintf(L"%d - %d - %d - %lc - %lc\n", pid, tid, i + 1, u_char, f_char);
 
-        int delay = 350000 + (rand() % 100001);
+        int delay = 350 000 + (rand() % 100001);
         usleep(delay);
     }
 
@@ -59,6 +59,7 @@ int main() {
 
     pthread_t thread1, thread2;
 
+    // tid, настройки потока, фукнция, argv...
     if (pthread_create(&thread1, NULL, Lab_04x, &iters_t1) != 0) {
         return 1;
     }
