@@ -21,7 +21,6 @@ public class CapsuleScript : MonoBehaviour
             if (cube_1 != null && texture_by_key != null) 
             {
                 cube_1.gameObject.GetComponent<Renderer>().material.SetTexture("_BaseMap", texture_by_key);
-                //cube_1.gameObject.GetComponent<Renderer>().material.mainTexture = texture_by_key;
             }     
         }
 
@@ -35,7 +34,6 @@ public class CapsuleScript : MonoBehaviour
 
             col.gameObject.GetComponent<Renderer>().material.color = randColor;
             col.gameObject.GetComponent<Renderer>().material.SetTexture("_BaseMap", texture_on_hit);
-            //col.gameObject.GetComponent<Renderer>().material.mainTexture = texture_on_hit;
         }
     }
 }
