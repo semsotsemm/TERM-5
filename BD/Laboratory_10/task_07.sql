@@ -1,61 +1,36 @@
+SET SERVEROUTPUT ON;
+
 DECLARE
-    v_new_teacher TEACHER.TEACHER%TYPE := 'АНТПВ';
-    v_new_teacher_name TEACHER.TEACHER_NAME%TYPE := 'Антипов Алексей Романович';
-    v_new_teacher_gender TEACHER.GENDER%TYPE := 'м';
-    v_new_teacher_pulpit TEACHER.PULPIT%TYPE := 'ИСиТ';
-    v_value_from_table TEACHER%ROWTYPE;
+    CURSOR c_avg_salary IS
+        SELECT 
+            p.FACULTY,
+            t.PULPIT,
+            FLOOR(AVG(t.SALARY)) AS AVG_SALARY,
+            GROUPING(p.FACULTY) AS is_total_all,
+            GROUPING(t.PULPIT) AS is_total_faculty
+        FROM 
+            TEACHER t
+        JOIN 
+            PULPIT p ON t.PULPIT = p.PULPIT
+        GROUP BY 
+            ROLLUP(p.FACULTY, t.PULPIT)
+        ORDER BY 
+            is_total_all, p.FACULTY, is_total_faculty, t.PULPIT;
 BEGIN
-    INSERT INTO TEACHER(TEACHER, TEACHER_NAME, GENDER, PULPIT)
-                Values(v_new_teacher, v_new_teacher_name, v_new_teacher_gender, v_new_teacher_pulpit);
+    DBMS_OUTPUT.PUT_LINE('--- Средняя заработная плата ---');
     
-    
-    IF SQL%ROWCOUNT = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('Не было добавлено ни одной новой строки.');
-    ELSE
-        DBMS_OUTPUT.PUT_LINE('Успешно добавлено ' || SQL%ROWCOUNT || ' новых строк');
-    END IF;
-    ROLLBACK;
-    DBMS_OUTPUT.PUT_LINE('Вставка откачена при помощи rollback.');
-
-    
-    SELECT *
-        INTO v_value_from_table
-        FROM TEACHER tch
-        WHERE tch.TEACHER = v_new_teacher; 
-    DBMS_OUTPUT.PUT_LINE('Значение из таблицы: ' || v_value_from_table.teacher_name);
-    
-    EXCEPTION 
-        WHEN NO_DATA_FOUND THEN
-        DBMS_OUTPUT.PUT_LINE('Значение не найдено в таблице TEACHER');
-  
-  
-    
-    INSERT INTO TEACHER(TEACHER, TEACHER_NAME, GENDER, PULPIT)
-                Values(v_new_teacher, v_new_teacher_name, v_new_teacher_gender, v_new_teacher_pulpit);
-   
-
-
-    IF SQL%ROWCOUNT = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('Не было добавлено ни одной новой строки.');
-    ELSE
-        DBMS_OUTPUT.PUT_LINE('Успешно добавлено ' || SQL%ROWCOUNT || ' новых строк');
-    END IF;
-    COMMIT;
-    DBMS_OUTPUT.PUT_LINE('Вставка закоммичена при помоши commit.');
-    
-    
-    
-    SELECT *
-        INTO v_value_from_table
-        FROM TEACHER tch
-        WHERE tch.TEACHER = v_new_teacher; 
-    DBMS_OUTPUT.PUT_LINE('Значение из таблицы: ' || v_value_from_table.teacher_name);
-    
-
-
-    DELETE
-        FROM TEACHER
-        WHERE TEACHER = 'АНТПВ';
-    DBMS_OUTPUT.PUT_LINE('Таблица возвращена в исходное состояние.');
+    FOR v_rec IN c_avg_salary LOOP
+        IF v_rec.is_total_all = 1 THEN
+            DBMS_OUTPUT.PUT_LINE('=========================================');
+            DBMS_OUTPUT.PUT_LINE('ИТОГО В ЦЕЛОМ: ' || v_rec.AVG_SALARY || ' руб.');
+            
+        ELSIF v_rec.is_total_faculty = 1 THEN
+            DBMS_OUTPUT.PUT_LINE('-----------------------------------------');
+            DBMS_OUTPUT.PUT_LINE('СРЕДНЕЕ ПО ФАКУЛЬТЕТУ ' || v_rec.FACULTY || ': ' || v_rec.AVG_SALARY || ' руб.');
+            
+        ELSE
+            DBMS_OUTPUT.PUT_LINE('Кафедра ' || v_rec.PULPIT || ': ' || v_rec.AVG_SALARY || ' руб.');
+        END IF;
+    END LOOP;
 END;
 /

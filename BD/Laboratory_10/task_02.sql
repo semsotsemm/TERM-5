@@ -11,9 +11,9 @@ BEGIN
         FETCH c_teachers INTO v_table_teacher_name;
         EXIT WHEN c_teachers%NOTFOUND;
         v_teacher_fio := 
-            REGEXP_SUBSTR(v_table_teacher_name, '[^ ]+', 1, 1) || ' ' || -- Фамилия
-            SUBSTR(REGEXP_SUBSTR(v_table_teacher_name, '[^ ]+', 1, 2), 1, 1) || '.' || -- И.
-            SUBSTR(REGEXP_SUBSTR(v_table_teacher_name, '[^ ]+', 1, 3), 1, 1) || '.';   -- О.
+            REGEXP_SUBSTR(v_table_teacher_name, '[^ ]+', 1, 1) || ' ' || 
+            SUBSTR(REGEXP_SUBSTR(v_table_teacher_name, '[^ ]+', 1, 2), 1, 1) || '.' || 
+            SUBSTR(REGEXP_SUBSTR(v_table_teacher_name, '[^ ]+', 1, 3), 1, 1) || '.';   
 
         DBMS_OUTPUT.PUT_LINE(v_teacher_fio);
     END LOOP;        
