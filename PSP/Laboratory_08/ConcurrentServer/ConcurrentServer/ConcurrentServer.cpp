@@ -11,16 +11,52 @@
 #include <mutex>
 #include <vector>
 #include <iostream>
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
 
-// Общая структура подключения для сервера и ServiceLibrary.dll.
+
+using namespace std;
+
+
+int PORT = 2000;
+int UDP_PORT = 2000;
+
+string DLL_NAME = "ServiceLibrary.dll";
+
+string PIPE_NAME = "\\\\.\\pipe\\ServerPipe";
+
+string CALLSIGN = "FindServer";
+
+HANDLE g_hAcceptServer = NULL;
+HANDLE g_hAcceptEvent = NULL;
+HANDLE g_hServerReady = NULL;
+HANDLE g_hWorkersReady = NULL;
+
+CRITICAL_SECTION scListContact;
+
+volatile LONG stat_total_connections = 0;
+volatile LONG stat_total_rejections = 0;
+volatile LONG stat_successful_connections = 0;
+volatile LONG stat_active_connections = 0;
+
+
 enum ContactStatus
 {
     ACCEPT,
     SERVICED,
     FINISHED
+};
+
+enum TalkersCommand {
+    START,
+    STOP,
+    EXIT,
+    STATISTICS,
+    WAIT,
+    SHUTDOWN,
+    GETCOMMAND
 };
 
 struct Contact
@@ -43,10 +79,15 @@ struct Contact
     void (*log_message)(const std::string&) = nullptr;
 };
 
-inline LONG ReadCounter(volatile LONG& value)
-{
-    return InterlockedCompareExchange(&value, 0, 0);
-}
+
+list<Contact> contacts;
+
+// Имя сервиса и параметры
+typedef HANDLE(*SSS_Function)(const char*, LPVOID);
+SSS_Function SSS = NULL;
+
+VOID CALLBACK TimerAPCProc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue);
+
 
 inline void InitConsole()
 {
@@ -54,6 +95,13 @@ inline void InitConsole()
     SetConsoleOutputCP(CP_UTF8);
     setlocale(LC_ALL, ".UTF8");
 }
+
+
+inline LONG ReadCounter(volatile LONG& value)
+{
+    return InterlockedCompareExchange(&value, 0, 0);
+}
+
 
 inline bool SendAll(SOCKET socket, const char* data, int size)
 {
@@ -70,11 +118,13 @@ inline bool SendAll(SOCKET socket, const char* data, int size)
     return true;
 }
 
+
 inline bool SendLine(SOCKET socket, const std::string& text)
 {
     std::string message = text + '\n';
     return SendAll(socket, message.data(), static_cast<int>(message.size()));
 }
+
 
 inline int ReceiveLine(SOCKET socket, std::string& text)
 {
@@ -99,6 +149,7 @@ inline int ReceiveLine(SOCKET socket, std::string& text)
     }
 }
 
+
 inline bool ReceiveAll(SOCKET socket, char* data, int size)
 {
     int received = 0;
@@ -114,46 +165,7 @@ inline bool ReceiveAll(SOCKET socket, char* data, int size)
     return true;
 }
 
-using namespace std;
 
-int PORT = 2000;
-HANDLE g_hAcceptServer = NULL;
-HANDLE g_hAcceptEvent = NULL;
-HANDLE g_hServerReady = NULL;
-HANDLE g_hWorkersReady = NULL;
-string DLL_NAME = "ServiceLibrary.dll";
-string PIPE_NAME = "\\\\.\\pipe\\ServerPipe";
-string CALLSIGN = "FindServer";
-int UDP_PORT = 2000;
-
-
-volatile LONG stat_total_connections = 0;
-volatile LONG stat_total_rejections = 0;
-volatile LONG stat_successful_connections = 0;
-volatile LONG stat_active_connections = 0;
-
-
-enum TalkersCommand {
-    START,
-    STOP,
-    EXIT,
-    STATISTICS,
-    WAIT,
-    SHUTDOWN,
-    GETCOMMAND
-};
-
-
-list<Contact> contacts;
-CRITICAL_SECTION scListContact;
-
-
-typedef HANDLE(*SSS_Function)(const char*, LPVOID);
-SSS_Function SSS = NULL;
-VOID CALLBACK TimerAPCProc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue);
-
-
-// Получение описания ошибки по ее коду.
 string SetErrorMessageText(string message_text, int error_code) {
     string error_message = message_text;
     error_message += to_string(error_code) + ": ";
@@ -345,10 +357,12 @@ void LogMessage(const string& message)
     cout.flush();
 }
 
+
 string ClientAddress(const Contact& contact)
 {
     return string(inet_ntoa(contact.params.sin_addr)) + ":" + to_string(ntohs(contact.params.sin_port));
 }
+
 
 string GetStatistics()
 {
@@ -361,12 +375,14 @@ string GetStatistics()
     return result;
 }
 
+
 void FinishWithoutService(Contact& contact, const string& reason)
 {
     LogMessage("[DispatchServer] " + ClientAddress(contact) + ": " + reason);
     InterlockedExchange(&contact.is_error, TRUE);
     InterlockedExchange(&contact.status, FINISHED);
 }
+
 
 DWORD WINAPI ResponseServer(LPVOID lp_param)
 {
@@ -421,6 +437,7 @@ DWORD WINAPI ResponseServer(LPVOID lp_param)
     return 0;
 }
 
+
 bool AcceptCycle(int accept_attempts, SOCKET server_socket)
 {
     bool rc = false;
@@ -456,6 +473,7 @@ bool AcceptCycle(int accept_attempts, SOCKET server_socket)
     }
     return rc;
 }
+
 
 void CommandsCycle(atomic<TalkersCommand>& cmd, SOCKET server_socket)
 {
@@ -539,6 +557,7 @@ void CommandsCycle(atomic<TalkersCommand>& cmd, SOCKET server_socket)
     SleepEx(0, TRUE);
 }
 
+
 DWORD WINAPI AcceptServer(LPVOID lp_param)
 {
     atomic<TalkersCommand>* command = (atomic<TalkersCommand>*)lp_param;
@@ -568,6 +587,7 @@ DWORD WINAPI AcceptServer(LPVOID lp_param)
     LogMessage("[AcceptServer] Поток завершён.");
     return 0;
 }
+
 
 DWORD WINAPI GarbageCleaner(LPVOID lp_param)
 {
@@ -604,20 +624,20 @@ DWORD WINAPI GarbageCleaner(LPVOID lp_param)
     return 0;
 }
 
+
 VOID CALLBACK TimerAPCProc(LPVOID lp_arg, DWORD, DWORD)
 {
     Contact* contact = (Contact*)lp_arg;
     EnterCriticalSection(&scListContact);
     if (ReadCounter(contact->status) == SERVICED)
     {
-        LogMessage("[Таймер] Сервис '" + string(contact->service_name) + "', клиент " + ClientAddress(*contact) +
-            ": превышен лимит 60 секунд. Прерываем ожидание сокета.");
+        LogMessage("[Таймер] Сервис '" + string(contact->service_name) + "', клиент " + ClientAddress(*contact) + ": превышен лимит 60 секунд. Прерываем ожидание сокета.");
         InterlockedExchange(&contact->is_error, TRUE);
-        // Вместо TerminateThread: recv/send завершаются, поток освобождает свои ресурсы.
         shutdown(contact->client_socket, SD_BOTH);
     }
     LeaveCriticalSection(&scListContact);
 }
+
 
 DWORD WINAPI DispatchServer(LPVOID lp_param)
 {
@@ -631,7 +651,6 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
             if (ReadCounter(contact.status) != ACCEPT) continue;
             bool request_ready = false;
             char symbol;
-            // Читаем только первую строку, сохраняя остальной TCP-поток для сервиса.
             for (int i = 0; i < 50; i++)
             {
                 int bytes = recv(contact.client_socket, &symbol, 1, 0);
@@ -734,11 +753,11 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
     return 0;
 }
 
+
 DWORD WINAPI ConsolePipe(LPVOID lp_param)
 {
     atomic<TalkersCommand>* command = (atomic<TalkersCommand>*)lp_param;
-    HANDLE h_pipe = CreateNamedPipeA(PIPE_NAME.c_str(), PIPE_ACCESS_DUPLEX,
-        PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_NOWAIT, 1, 4096, 4096, 0, NULL);
+    HANDLE h_pipe = CreateNamedPipeA(PIPE_NAME.c_str(), PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_NOWAIT, 1, 4096, 4096, 0, NULL);
     if (h_pipe == INVALID_HANDLE_VALUE)
     {
         LogMessage("[ConsolePipe] Ошибка создания канала: " + to_string(GetLastError()) + ".");
@@ -818,6 +837,7 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
     return 0;
 }
 
+
 int ParseNumber(const char* text, int minimum, int maximum)
 {
     string value(text);
@@ -828,24 +848,42 @@ int ParseNumber(const char* text, int minimum, int maximum)
     return number;
 }
 
+
 int main(int argc, char* argv[])
 {
     InitConsole();
+
     if (argc > 6 || (argc > 1 && string(argv[1]) == "--help"))
     {
-        cout << "Использование: ConcurrentServer.exe [TCP-порт] [DLL] [канал] [UDP-порт] [позывной]\n"
-             << "По умолчанию: 2000 ServiceLibrary.dll \\\\.\\pipe\\ServerPipe 2000 FindServer\n";
+        cout << "Использование: ConcurrentServer.exe [TCP-порт] [DLL] [Имя канала] [UDP-порт] [Широковещательный позывной]\n" << "По умолчанию: [2000] [ServiceLibrary.dll] [\\\\.\\pipe\\ServerPipe] [2000] [FindServer]\n";
         return argc > 6 ? 1 : 0;
     }
     try
     {
-        if (argc > 1) PORT = ParseNumber(argv[1], 1, 65535);
-        if (argc > 2) DLL_NAME = argv[2];
-        if (argc > 3) PIPE_NAME = argv[3];
-        if (argc > 4) UDP_PORT = ParseNumber(argv[4], 1, 65535);
-        if (argc > 5) CALLSIGN = argv[5];
+        if (argc > 1)
+        {
+            PORT = ParseNumber(argv[1], 1, 65535);
+        }
+        if (argc > 2)
+        {
+            DLL_NAME = argv[2];
+        }
+        if (argc > 3)
+        {
+            PIPE_NAME = argv[3];
+        }
+        if (argc > 4)
+        {
+            UDP_PORT = ParseNumber(argv[4], 1, 65535);
+        }
+        if (argc > 5)
+        {
+            CALLSIGN = argv[5];
+        }
         if (CALLSIGN.empty() || CALLSIGN.size() > 255)
+        {
             throw string("Позывной должен содержать от 1 до 255 байт.\n");
+        }
     }
     catch (const string& error)
     {
@@ -865,14 +903,15 @@ int main(int argc, char* argv[])
         cerr << SetErrorMessageText("Ошибка WSAStartup: ", wsa_error);
         return 1;
     }
+
     HMODULE h_service_lib = LoadLibraryA(DLL_NAME.c_str());
     if (h_service_lib == NULL)
     {
-        cerr << "Не удалось загрузить " << DLL_NAME << ". Код: " << GetLastError()
-             << ". DLL должна соответствовать разрядности сервера.\n";
+        cerr << "Не удалось загрузить " << DLL_NAME << ". Код: " << GetLastError() << ". DLL должна соответствовать разрядности сервера.\n";
         WSACleanup();
         return 1;
     }
+
     SSS = (SSS_Function)GetProcAddress(h_service_lib, "SSS");
     if (SSS == NULL)
     {
@@ -882,15 +921,16 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) +
-        " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME +
-        "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit).\n"
-        "Клиенты: ClientT.exe [IPv4] [TCP-порт]. Сервисы: echo, time, rand.");
+    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) + " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME + "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit).\n" + "Клиенты: ClientT.exe [IPv4] [TCP-порт]. Сервисы: echo, time, rand.");
+   
     InitializeCriticalSection(&scListContact);
+    
     g_hServerReady = CreateEvent(NULL, TRUE, FALSE, NULL);
     g_hWorkersReady = CreateEvent(NULL, TRUE, FALSE, NULL);
+    
     atomic<TalkersCommand> cmd_start(START);
     HANDLE threads[5] = {};
+
     bool started = g_hServerReady != NULL && g_hWorkersReady != NULL;
     if (started)
     {
@@ -898,6 +938,7 @@ int main(int argc, char* argv[])
         g_hAcceptServer = threads[0];
         started = threads[0] != NULL;
     }
+
     if (started)
     {
         SetThreadPriority(threads[0], THREAD_PRIORITY_HIGHEST);
@@ -905,20 +946,22 @@ int main(int argc, char* argv[])
         WaitForSingleObject(g_hServerReady, INFINITE);
         started = cmd_start.load() != EXIT;
     }
+    
     if (started)
     {
         threads[1] = CreateThread(NULL, 0, DispatchServer, &cmd_start, CREATE_SUSPENDED, NULL);
         threads[2] = CreateThread(NULL, 0, GarbageCleaner, &cmd_start, CREATE_SUSPENDED, NULL);
         threads[3] = CreateThread(NULL, 0, ConsolePipe, &cmd_start, CREATE_SUSPENDED, NULL);
         threads[4] = CreateThread(NULL, 0, ResponseServer, &cmd_start, CREATE_SUSPENDED, NULL);
+
         started = threads[1] && threads[2] && threads[3] && threads[4];
         if (!started)
         {
             LogMessage("[main] Не удалось создать все потоки. Завершаем сервер.");
             cmd_start.store(EXIT);
         }
-        int priorities[] = { THREAD_PRIORITY_HIGHEST, THREAD_PRIORITY_ABOVE_NORMAL,
-            THREAD_PRIORITY_LOWEST, THREAD_PRIORITY_NORMAL, THREAD_PRIORITY_ABOVE_NORMAL };
+
+        int priorities[] = { THREAD_PRIORITY_HIGHEST, THREAD_PRIORITY_ABOVE_NORMAL, THREAD_PRIORITY_LOWEST, THREAD_PRIORITY_NORMAL, THREAD_PRIORITY_ABOVE_NORMAL };
         for (int i = 1; i < 5; i++)
         {
             if (threads[i])
@@ -928,11 +971,29 @@ int main(int argc, char* argv[])
             }
         }
     }
-    if (!started) cmd_start.store(EXIT);
-    if (g_hWorkersReady) SetEvent(g_hWorkersReady);
-    if (threads[0]) WaitForSingleObject(threads[0], INFINITE);
+    
+    if (!started)
+    {
+        cmd_start.store(EXIT);
+    }
+    
+    if (g_hWorkersReady)
+    {
+        SetEvent(g_hWorkersReady);
+    }
+    
+    if (threads[0])
+    {
+        WaitForSingleObject(threads[0], INFINITE);
+    }
+    
     cmd_start.store(EXIT);
-    if (g_hAcceptEvent) SetEvent(g_hAcceptEvent);
+    
+    if (g_hAcceptEvent)
+    {
+        SetEvent(g_hAcceptEvent);
+    }
+    
     for (int i = 0; i < 5; i++)
     {
         if (threads[i])
@@ -941,12 +1002,29 @@ int main(int argc, char* argv[])
             CloseHandle(threads[i]);
         }
     }
-    if (g_hAcceptEvent) CloseHandle(g_hAcceptEvent);
-    if (g_hServerReady) CloseHandle(g_hServerReady);
-    if (g_hWorkersReady) CloseHandle(g_hWorkersReady);
+    
+    if (g_hAcceptEvent)
+    {
+        CloseHandle(g_hAcceptEvent);
+    }
+    
+    if (g_hServerReady)
+    {
+        CloseHandle(g_hServerReady);
+    }
+   
+    if (g_hWorkersReady)
+    {
+        CloseHandle(g_hWorkersReady);
+    }
+    
     DeleteCriticalSection(&scListContact);
+    
     FreeLibrary(h_service_lib);
+    
     WSACleanup();
+    
     LogMessage("[main] Все потоки завершены. Библиотека отключена. Сервер остановлен.");
+    
     return started ? 0 : 1;
 }

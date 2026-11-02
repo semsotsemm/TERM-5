@@ -146,9 +146,6 @@
     <ClCompile Include="ConcurrentServer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ServerCommon.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\ServiceLibrary\ServiceLibrary.vcxproj">
       <Project>{ee935138-c667-4087-9ee3-2b086fbf1e10}</Project>
       <LinkLibraryDependencies>false</LinkLibraryDependencies>
