@@ -1,16 +1,95 @@
 ﻿#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <iostream>
 #include <winsock2.h>
+#include <ws2tcpip.h>
+#include <mstcpip.h>
+#include <mswsock.h>
+#include <vector>
+#include <algorithm>
 #include <string>
 #include <chrono>
 #include <cstdint>
-#include "../ServerCommon.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
 
 
+inline void InitConsole()
+{
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+    setlocale(LC_ALL, ".UTF8");
+}
+
+
+inline LONG ReadCounter(volatile LONG& value)
+{
+    return InterlockedCompareExchange(&value, 0, 0);
+}
+
+
+inline bool SendAll(SOCKET socket, const char* data, int size)
+{
+    int sent = 0;
+    while (sent < size)
+    {
+        int bytes = send(socket, data + sent, size - sent, 0);
+        if (bytes <= 0)
+        {
+            return false;
+        }
+        sent += bytes;
+    }
+    return true;
+}
+
+
+inline bool SendLine(SOCKET socket, const std::string& text)
+{
+    std::string message = text + '\n';
+    return SendAll(socket, message.data(), static_cast<int>(message.size()));
+}
+
+
+inline int ReceiveLine(SOCKET socket, std::string& text)
+{
+    text.clear();
+    char symbol;
+    while (true)
+    {
+        int bytes = recv(socket, &symbol, 1, 0);
+        if (bytes <= 0)
+        {
+            return bytes == 0 && text.empty() ? 0 : -1;
+        }
+        if (symbol == '\n')
+        {
+            return 1;
+        }
+        text += symbol;
+        if (text.size() > 4096)
+        {
+            return -1;
+        }
+    }
+}
+
+
+inline bool ReceiveAll(SOCKET socket, char* data, int size)
+{
+    int received = 0;
+    while (received < size)
+    {
+        int bytes = recv(socket, data + received, size - received, 0);
+        if (bytes <= 0)
+        {
+            return false;
+        }
+        received += bytes;
+    }
+    return true;
+}
 
 
 // Получение описания ошибки по ее коду.
@@ -207,54 +286,99 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
 {
     SOCKET udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (udp_socket == INVALID_SOCKET) throw SetErrorMessageText("Ошибка UDP socket: ", WSAGetLastError());
-    BOOL broadcast = TRUE;
-    u_long nonblk = 1;
-    SOCKADDR_IN address = {};
-    address.sin_family = AF_INET;
-    address.sin_port = htons(static_cast<u_short>(udp_port));
-    address.sin_addr.s_addr = INADDR_BROADCAST;
-    if (setsockopt(udp_socket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast)) == SOCKET_ERROR ||
-        ioctlsocket(udp_socket, FIONBIO, &nonblk) == SOCKET_ERROR ||
-        sendto(udp_socket, callsign.c_str(), static_cast<int>(callsign.size()), 0,
-            (sockaddr*)&address, sizeof(address)) == SOCKET_ERROR)
+    try
     {
-        int error = WSAGetLastError();
-        closesocket(udp_socket);
-        throw SetErrorMessageText("Ошибка отправки broadcast: ", error);
-    }
-    // Локальный экземпляр найдётся и при блокировке broadcast брандмауэром.
-    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    sendto(udp_socket, callsign.c_str(), static_cast<int>(callsign.size()), 0,
-        (sockaddr*)&address, sizeof(address));
-    cout << "Поиск сервера: UDP " << udp_port << ", позывной '" << callsign << "', ожидание до 3 секунд...\n";
-    ULONGLONG deadline = GetTickCount64() + 3000;
-    while (GetTickCount64() < deadline)
-    {
-        char buffer[256];
-        SOCKADDR_IN server_address = {};
-        int address_size = sizeof(server_address);
-        int bytes = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&server_address, &address_size);
-        if (bytes > 0)
+        BOOL broadcast = TRUE;
+        BOOL report_port_unreachable = FALSE;
+        DWORD returned = 0;
+        u_long nonblk = 1;
+        // Закрытый UDP-порт на одном адресе (в том числе localhost) не должен
+        // прерывать ожидание ответа от остальных серверов с ошибкой 10054.
+        if (setsockopt(udp_socket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast)) == SOCKET_ERROR ||
+            WSAIoctl(udp_socket, SIO_UDP_CONNRESET, &report_port_unreachable,
+                sizeof(report_port_unreachable), NULL, 0, &returned, NULL, NULL) == SOCKET_ERROR ||
+            ioctlsocket(udp_socket, FIONBIO, &nonblk) == SOCKET_ERROR)
         {
-            buffer[bytes] = '\0';
-            string answer(buffer);
-            if (answer.rfind("Welcome to ConcurrentServer; TCP=", 0) == 0)
+            throw SetErrorMessageText("Ошибка настройки UDP-поиска: ", WSAGetLastError());
+        }
+
+        vector<u_long> destinations = { INADDR_BROADCAST, htonl(INADDR_LOOPBACK) };
+        INTERFACE_INFO interfaces[64];
+        // Отправляем запрос также в подсеть каждого активного IPv4-интерфейса:
+        // общий broadcast может выбрать другой адаптер при нескольких сетях.
+        if (WSAIoctl(udp_socket, SIO_GET_INTERFACE_LIST, NULL, 0, interfaces,
+            sizeof(interfaces), &returned, NULL, NULL) != SOCKET_ERROR)
+        {
+            for (DWORD i = 0; i < returned / sizeof(INTERFACE_INFO); i++)
             {
-                closesocket(udp_socket);
-                tcp_port = GetNumber(answer.substr(answer.find('=') + 1), 1, 65535);
-                return inet_ntoa(server_address.sin_addr);
+                if ((interfaces[i].iiFlags & (IFF_UP | IFF_BROADCAST)) != (IFF_UP | IFF_BROADCAST)) continue;
+                u_long address = interfaces[i].iiAddress.AddressIn.sin_addr.s_addr;
+                u_long mask = interfaces[i].iiNetmask.AddressIn.sin_addr.s_addr;
+                if (mask == 0 || mask == INADDR_BROADCAST) continue;
+                u_long subnet_broadcast = (address & mask) | ~mask;
+                if (find(destinations.begin(), destinations.end(), subnet_broadcast) == destinations.end())
+                    destinations.push_back(subnet_broadcast);
             }
         }
-        else if (bytes == SOCKET_ERROR && WSAGetLastError() != WSAEWOULDBLOCK)
+
+        cout << "Поиск сервера: UDP " << udp_port << ", позывной '" << callsign << "', ожидание до 3 секунд...\n" << flush;
+        ULONGLONG deadline = GetTickCount64() + 3000;
+        ULONGLONG next_request = 0;
+        while (GetTickCount64() < deadline)
         {
-            int error = WSAGetLastError();
-            closesocket(udp_socket);
-            throw SetErrorMessageText("Ошибка recvfrom: ", error);
+            if (GetTickCount64() >= next_request)
+            {
+                bool sent = false;
+                int send_error = 0;
+                SOCKADDR_IN address = {};
+                address.sin_family = AF_INET;
+                address.sin_port = htons(static_cast<u_short>(udp_port));
+                for (u_long destination : destinations)
+                {
+                    address.sin_addr.s_addr = destination;
+                    if (sendto(udp_socket, callsign.c_str(), static_cast<int>(callsign.size()), 0,
+                        (sockaddr*)&address, sizeof(address)) != SOCKET_ERROR)
+                        sent = true;
+                    else send_error = WSAGetLastError();
+                }
+                if (!sent) throw SetErrorMessageText("Ошибка отправки запросов поиска: ", send_error);
+                next_request = GetTickCount64() + 750;
+            }
+
+            char buffer[256];
+            SOCKADDR_IN server_address = {};
+            int address_size = sizeof(server_address);
+            int bytes = recvfrom(udp_socket, buffer, sizeof(buffer) - 1, 0, (sockaddr*)&server_address, &address_size);
+            if (bytes > 0 && ntohs(server_address.sin_port) == udp_port)
+            {
+                string answer(buffer, bytes);
+                const string prefix = "Welcome to ConcurrentServer; TCP=";
+                if (answer.rfind(prefix, 0) == 0)
+                {
+                    int found_port;
+                    try { found_port = GetNumber(answer.substr(prefix.size()), 1, 65535); }
+                    catch (...) { continue; } // Некорректная датаграмма не завершает поиск.
+                    string server_ip = inet_ntoa(server_address.sin_addr);
+                    tcp_port = found_port;
+                    closesocket(udp_socket);
+                    return server_ip;
+                }
+            }
+            else if (bytes == SOCKET_ERROR)
+            {
+                int error = WSAGetLastError();
+                if (error != WSAEWOULDBLOCK && error != WSAEMSGSIZE)
+                    throw SetErrorMessageText("Ошибка recvfrom: ", error);
+            }
+            Sleep(20);
         }
-        Sleep(20);
+        throw string("Сервер не найден за 3 секунды. Проверьте позывной и UDP-порт.\n");
     }
-    closesocket(udp_socket);
-    throw string("Сервер не найден за 3 секунды. Проверьте позывной и UDP-порт.\n");
+    catch (...)
+    {
+        closesocket(udp_socket);
+        throw;
+    }
 }
 
 int main(int argc, char* argv[])

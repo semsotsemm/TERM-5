@@ -64,12 +64,6 @@ ServiceList TableService[] = {
 };
 
 
-inline LONG ReadCounter(volatile LONG& value)
-{
-    return InterlockedCompareExchange(&value, 0, 0);
-}
-
-
 inline void InitConsole()
 {
     SetConsoleCP(CP_UTF8);
