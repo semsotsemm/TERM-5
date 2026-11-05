@@ -2,17 +2,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const jsonContainer = document.getElementById('json-container');
     const xmlContainer = document.getElementById('xml-container');
 
-    // Функция для красивого вывода данных с плавным появлением
     function displayData(element, data) {
         element.innerText = data;
-        element.classList.remove('loading'); // Убираем прозрачность
+        element.classList.remove('loading');
     }
 
-    // Загрузка JSON 
     fetch('/data.json')
         .then(response => response.json())
         .then(data => {
-            // setTimeout используем просто для красивой демонстрации анимации
             setTimeout(() => {
                 displayData(jsonContainer, JSON.stringify(data, null, 2));
             }, 300);
@@ -22,7 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
             displayData(jsonContainer, 'Ошибка загрузки JSON');
         });
 
-    // Загрузка XML
     fetch('/data.xml')
         .then(response => response.text())
         .then(data => {

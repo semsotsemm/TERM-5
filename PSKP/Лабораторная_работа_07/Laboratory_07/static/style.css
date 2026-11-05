@@ -1,4 +1,3 @@
-/* Базовые переменные для цветов */
 :root {
     --bg-color: #f0f2f5;
     --text-color: #333;
@@ -17,7 +16,6 @@ body {
     justify-content: center;
 }
 
-/* Главный контейнер */
 .container {
     max-width: 900px;
     width: 100%;
@@ -33,7 +31,6 @@ h1 {
     margin-bottom: 40px;
 }
 
-/* Секция с медиа */
 .media-section {
     display: flex;
     flex-wrap: wrap;
@@ -60,10 +57,9 @@ h1 {
 }
 
 .media-card img:hover {
-    transform: scale(1.03); /* Легкое увеличение при наведении */
+    transform: scale(1.03);
 }
 
-/* Кнопка скачивания */
 .actions {
     text-align: center;
     margin-bottom: 40px;
@@ -88,7 +84,6 @@ h1 {
     box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
 }
 
-/* Секция данных (JSON/XML) */
 .data-section {
     display: grid;
     grid-template-columns: 1fr 1fr; /* Два столбца */
@@ -97,7 +92,7 @@ h1 {
 
 @media (max-width: 768px) {
     .data-section {
-        grid-template-columns: 1fr; /* Один столбец на мобильных */
+        grid-template-columns: 1fr;
     }
 }
 
@@ -114,7 +109,6 @@ h1 {
     color: #444;
 }
 
-/* Блоки с кодом */
 pre {
     background: #282c34;
     color: #abb2bf;
@@ -124,10 +118,9 @@ pre {
     font-size: 14px;
     line-height: 1.5;
     opacity: 1;
-    transition: opacity 0.5s ease; /* Плавное появление */
+    transition: opacity 0.5s ease;
 }
 
-/* Класс для анимации загрузки */
 pre.loading {
     opacity: 0.3;
     color: #888;

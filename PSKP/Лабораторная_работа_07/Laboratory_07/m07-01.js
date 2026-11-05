@@ -34,7 +34,6 @@ module.exports = function (staticDirName) {
         const extname = String(path.extname(pathname)).toLowerCase();
         const relative_path = path.relative(staticRoot, file_path);
 
-        // Раздаём только разрешённые файлы внутри static.
         if (pathname.includes('\0') || !Object.hasOwn(MIMETYPES, extname) || relative_path === '..' ||
             relative_path.startsWith('..' + path.sep) || path.isAbsolute(relative_path)) {
             res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
