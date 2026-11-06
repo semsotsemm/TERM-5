@@ -53,9 +53,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\light_trigger.cs" />
-    <Compile Include="Assets\tank_script.cs" />
     <Compile Include="Assets\TutorialInfo\Readme.cs" />
     <Compile Include="Assets\bomb_script.cs" />
+    <Compile Include="Assets\tank_move_script.cs" />
     <Compile Include="Assets\wall_trigger.cs" />
     <Compile Include="Assets\bomb_dropper.cs" />
   </ItemGroup>
