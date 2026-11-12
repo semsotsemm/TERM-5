@@ -1,6 +1,0 @@
-bin/
-obj/
-build/
-results/
-.vs/
-*.vcxproj.user

@@ -9,7 +9,7 @@ DECLARE
         FROM 
             TEACHER
         WHERE 
-            -- Разница между следующим годом и годом рождения должна делиться на 5 без остатка
+            -- Разница между годом и годом рождения должна делиться на 5
             MOD((EXTRACT(YEAR FROM SYSDATE) + 1) - EXTRACT(YEAR FROM BIRTHDAY), 5) = 0
             AND BIRTHDAY IS NOT NULL;
 BEGIN
