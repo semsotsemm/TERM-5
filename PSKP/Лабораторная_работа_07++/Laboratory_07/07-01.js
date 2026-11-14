@@ -1,7 +1,7 @@
 const http = require('http');
 const staticHandler = require('./m07-01')('static');
 
-const PORT = 5000;
+const PORT = 5001;
 
 const server = http.createServer((req, res) => {
     if (req.method === 'GET')

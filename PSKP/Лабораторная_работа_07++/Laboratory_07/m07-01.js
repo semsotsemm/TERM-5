@@ -16,10 +16,13 @@ module.exports = function (staticDirName) {
     const staticRoot = path.resolve(__dirname, staticDirName);
     return function(req, res) {
         let pathname;
-        try {
+        try
+        {
             const parsed_url = new URL(req.url, 'http://localhost');
             pathname = decodeURIComponent(parsed_url.pathname);
-        } catch (err) {
+        }
+        catch (err)
+        {
             res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end('Page Not Found');
             return;

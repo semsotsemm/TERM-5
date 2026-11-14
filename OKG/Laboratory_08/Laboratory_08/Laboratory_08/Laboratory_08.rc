@@ -1,0 +1,32 @@
+#pragma code_page(65001)
+#include <windows.h>
+#include "resource.h"
+
+IDR_FIGURE_MENU MENU
+BEGIN
+    POPUP "&Фигура"
+    BEGIN
+        MENUITEM "Положение камеры...", IDM_CAMERA
+        MENUITEM SEPARATOR
+        MENUITEM "Эллиптический параболоид", IDM_ELLIPTIC_PARABOLOID
+        MENUITEM "Гиперболический параболоид", IDM_HYPERBOLIC_PARABOLOID
+        MENUITEM "Полусфера", IDM_HEMISPHERE
+        MENUITEM SEPARATOR
+        MENUITEM "Положение камеры по умолчанию", IDM_DEFAULT_CAMERA
+    END
+END
+
+IDD_CAMERA DIALOGEX 0, 0, 246, 119
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Положение камеры"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Радиус r = 10", -1, 12, 10, 222, 12
+    LTEXT           "&φ — азимут, градусы", -1, 12, 31, 154, 12
+    EDITTEXT        IDC_PHI, 174, 28, 60, 14, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "&θ — угол от оси Z, 0–180°", -1, 12, 51, 154, 12
+    EDITTEXT        IDC_THETA, 174, 48, 60, 14, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "", IDC_CAMERA_ERROR, 12, 69, 222, 21
+    DEFPUSHBUTTON   "Применить", IDOK, 101, 94, 65, 16
+    PUSHBUTTON      "Отмена", IDCANCEL, 174, 94, 60, 16
+END

@@ -16,19 +16,19 @@ CPyramid pyramid;
 bool show_pyramid = false;
 bool remove_hidden_faces = false;
 
-HWND CreateDialogControl(HWND dialog, const wchar_t* class_name, const wchar_t* text,
-    DWORD style, int x, int y, int width, int height, int control_id = 0)
+HWND CreateDialogControl(HWND parrent_window, const wchar_t* element_type, const wchar_t* text, DWORD style, int x, int y, int width, int height, int control_id = 0)
 {
     HWND control = CreateWindowExW(
-        class_name[0] == L'E' ? WS_EX_CLIENTEDGE : 0,
-        class_name, text, WS_CHILD | WS_VISIBLE | style,
-        x, y, width, height, dialog,
+        element_type[0] == L'E' ? WS_EX_CLIENTEDGE : 0,
+        element_type, text, WS_CHILD | WS_VISIBLE | style,
+        x, y, width, height, parrent_window,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(control_id)),
         GetModuleHandleW(nullptr), nullptr
     );
     SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(GetStockObject(DEFAULT_GUI_FONT)), TRUE);
     return control;
 }
+
 
 bool ReadAngle(HWND dialog, int control_id, double& value)
 {
@@ -59,6 +59,7 @@ bool ReadAngle(HWND dialog, int control_id, double& value)
     return *end == L'\0' && std::isfinite(value);
 }
 
+
 INT_PTR CALLBACK CameraDialogProc(HWND dialog, UINT message, WPARAM w_param, LPARAM l_param)
 {
     switch (message)
@@ -73,7 +74,7 @@ INT_PTR CALLBACK CameraDialogProc(HWND dialog, UINT message, WPARAM w_param, LPA
             GetClientRect(dialog, &rect);
             const int width = rect.right;
             CreateDialogControl(dialog, L"STATIC", L"r = 10 (не изменяется)", 0, 18, 14, width - 36, 20);
-            CreateDialogControl(dialog, L"STATIC", L"φ — азимут, градусы:", 0, 18, 45, 170, 20);
+            CreateDialogControl(dialog, L"STATIC", L"φ — угол от оси X (0–180°):", 0, 18, 45, 170, 20);
             CreateDialogControl(dialog, L"STATIC", L"θ — угол от оси Z (0–180°):", 0, 18, 79, 185, 20);
 
             wchar_t value[64];
@@ -131,6 +132,7 @@ INT_PTR CALLBACK CameraDialogProc(HWND dialog, UINT message, WPARAM w_param, LPA
     return FALSE;
 }
 
+
 void ShowCameraDialog(HWND window)
 {
     alignas(DWORD) BYTE template_data[128] = {};
@@ -145,6 +147,7 @@ void ShowCameraDialog(HWND window)
         InvalidateRect(window, nullptr, FALSE);
     }
 }
+
 
 void PaintWindow(HWND window)
 {
@@ -180,6 +183,7 @@ void PaintWindow(HWND window)
     DeleteDC(memory_dc);
     EndPaint(window, &paint);
 }
+
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 {
@@ -241,6 +245,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     }
     return DefWindowProcW(window, message, w_param, l_param);
 }
+
 
 int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int show_command)
 {

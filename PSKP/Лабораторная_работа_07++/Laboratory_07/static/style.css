@@ -1,13 +1,10 @@
 :root {
     --bg-color: #f0f2f5;
     --text-color: #333;
-    --accent-color: #4facfe;
-    --accent-hover: #3b8ecc;
     --card-bg: #ffffff;
 }
 
 body {
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     margin: 0;
@@ -27,7 +24,6 @@ body {
 
 h1 {
     text-align: center;
-    color: var(--accent-color);
     margin-bottom: 40px;
 }
 
@@ -65,23 +61,23 @@ h1 {
     margin-bottom: 40px;
 }
 
+.actions a{
+    color: var(--text-color);
+}
+
 .btn {
     display: inline-block;
-    background-color: var(--accent-color);
-    color: white;
+    background-color: var(--bg-color);
     text-decoration: none;
     padding: 14px 28px;
     border-radius: 8px;
     font-weight: 600;
     font-size: 16px;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 10px rgba(79, 172, 254, 0.3);
 }
 
 .btn:hover {
-    background-color: var(--accent-hover);
     transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(79, 172, 254, 0.4);
 }
 
 .data-section {
@@ -100,18 +96,14 @@ h1 {
     background: var(--bg-color);
     padding: 20px;
     border-radius: 12px;
-    border-left: 5px solid var(--accent-color);
 }
 
 .data-card h3 {
     margin-top: 0;
     font-size: 18px;
-    color: #444;
 }
 
 pre {
-    background: #282c34;
-    color: #abb2bf;
     padding: 15px;
     border-radius: 8px;
     overflow-x: auto;
