@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
     {
         if (argc > 4 || (argc > 1 && string(argv[1]) == "--help"))
         {
-            cout << "ClientTy.exe [IPv4 сервера] [TCP-порт] [количество подключений]\n"
+            cout << "ClientTy.exe [имя DNS или IPv4] [TCP-порт] [количество подключений]\n"
                  << "По умолчанию: 127.0.0.1 2000 100\n";
             WSACleanup();
             return argc > 4 ? 1 : 0;
@@ -36,10 +36,13 @@ int main(int argc, char* argv[])
         int port = argc > 2 ? get_number(argv[2], 65535) : 2000;
         int connections_count = argc > 3 ? get_number(argv[3], 1000000) : 100;
         SOCKADDR_IN server_address = {};
-        server_address.sin_family = AF_INET;
-        server_address.sin_port = htons(static_cast<u_short>(port));
-        server_address.sin_addr.s_addr = inet_addr(server_ip.c_str());
-        if (server_address.sin_addr.s_addr == INADDR_NONE) throw invalid_argument("IPv4");
+        int resolve_error = ResolveServer(server_ip, port, server_address);
+        if (resolve_error != 0)
+        {
+            cerr << "Не удалось разрешить имя " << server_ip << ": " << resolve_error << '\\n';
+            WSACleanup();
+            return 1;
+        }
         cout << "========== ClientTy: тест подключений ==========\nСервер: " << server_ip << ':' << port
              << "\nПодключений: " << connections_count << ". После подключения сразу закрываем соединение.\n";
         int successful = 0;

@@ -1,98 +1,17 @@
-﻿#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <iostream>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <mstcpip.h>
+#include "../ServerCommon.h"
 #include <mswsock.h>
 #include <vector>
 #include <algorithm>
 #include <string>
 #include <chrono>
-#include <cstdint>
 
 #pragma comment(lib, "ws2_32.lib")
 
 using namespace std;
 
 
-inline void InitConsole()
-{
-    SetConsoleCP(CP_UTF8);
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, ".UTF8");
-}
-
-
-inline LONG ReadCounter(volatile LONG& value)
-{
-    return InterlockedCompareExchange(&value, 0, 0);
-}
-
-
-inline bool SendAll(SOCKET socket, const char* data, int size)
-{
-    int sent = 0;
-    while (sent < size)
-    {
-        int bytes = send(socket, data + sent, size - sent, 0);
-        if (bytes <= 0)
-        {
-            return false;
-        }
-        sent += bytes;
-    }
-    return true;
-}
-
-
-inline bool SendLine(SOCKET socket, const std::string& text)
-{
-    std::string message = text + '\n';
-    return SendAll(socket, message.data(), static_cast<int>(message.size()));
-}
-
-
-inline int ReceiveLine(SOCKET socket, std::string& text)
-{
-    text.clear();
-    char symbol;
-    while (true)
-    {
-        int bytes = recv(socket, &symbol, 1, 0);
-        if (bytes <= 0)
-        {
-            return bytes == 0 && text.empty() ? 0 : -1;
-        }
-        if (symbol == '\n')
-        {
-            return 1;
-        }
-        text += symbol;
-        if (text.size() > 4096)
-        {
-            return -1;
-        }
-    }
-}
-
-
-inline bool ReceiveAll(SOCKET socket, char* data, int size)
-{
-    int received = 0;
-    while (received < size)
-    {
-        int bytes = recv(socket, data + received, size - received, 0);
-        if (bytes <= 0)
-        {
-            return false;
-        }
-        received += bytes;
-    }
-    return true;
-}
-
-
-// Получение описания ошибки по ее коду.
 string SetErrorMessageText(string message_text, int error_code) {
     string error_message = message_text;
     error_message += to_string(error_code) + ": ";
@@ -281,7 +200,6 @@ int GetNumber(const string& text, int minimum, int maximum)
     return value;
 }
 
-// Поиск по UDP без бесконечной блокировки, как требует задание 27.
 string FindServer(int udp_port, const string& callsign, int& tcp_port)
 {
     SOCKET udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -292,8 +210,6 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
         BOOL report_port_unreachable = FALSE;
         DWORD returned = 0;
         u_long nonblk = 1;
-        // Закрытый UDP-порт на одном адресе (в том числе localhost) не должен
-        // прерывать ожидание ответа от остальных серверов с ошибкой 10054.
         if (setsockopt(udp_socket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast)) == SOCKET_ERROR ||
             WSAIoctl(udp_socket, SIO_UDP_CONNRESET, &report_port_unreachable,
                 sizeof(report_port_unreachable), NULL, 0, &returned, NULL, NULL) == SOCKET_ERROR ||
@@ -304,8 +220,6 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
 
         vector<u_long> destinations = { INADDR_BROADCAST, htonl(INADDR_LOOPBACK) };
         INTERFACE_INFO interfaces[64];
-        // Отправляем запрос также в подсеть каждого активного IPv4-интерфейса:
-        // общий broadcast может выбрать другой адаптер при нескольких сетях.
         if (WSAIoctl(udp_socket, SIO_GET_INTERFACE_LIST, NULL, 0, interfaces,
             sizeof(interfaces), &returned, NULL, NULL) != SOCKET_ERROR)
         {
@@ -357,7 +271,7 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
                 {
                     int found_port;
                     try { found_port = GetNumber(answer.substr(prefix.size()), 1, 65535); }
-                    catch (...) { continue; } // Некорректная датаграмма не завершает поиск.
+                    catch (...) { continue; }
                     string server_ip = inet_ntoa(server_address.sin_addr);
                     tcp_port = found_port;
                     closesocket(udp_socket);
@@ -381,16 +295,275 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
     }
 }
 
+
+class ConsoleStatus
+{
+    HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    bool enabled = false;
+    string previous;
+    ULONGLONG last_draw = 0;
+    COORD position = {};
+
+    SHORT DrawLine(const string& text, SHORT width, SHORT row)
+    {
+        int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), NULL, 0);
+        wstring wide(length, L' ');
+        if (length > 0)
+        {
+            MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), &wide[0], length);
+        }
+        wide.resize(width, L' ');
+        DWORD written;
+        WriteConsoleOutputCharacterW(output, wide.data(), static_cast<DWORD>(width), { 0, row }, &written);
+        return static_cast<SHORT>(length < width ? length : width - 1);
+    }
+
+public:
+    ConsoleStatus()
+    {
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        enabled = GetConsoleScreenBufferInfo(output, &info) != FALSE;
+    }
+
+    ~ConsoleStatus()
+    {
+        Clear();
+    }
+
+    void Clear()
+    {
+        if (!previous.empty())
+        {
+            CONSOLE_SCREEN_BUFFER_INFO info;
+            if (GetConsoleScreenBufferInfo(output, &info) && position.Y + 1 < info.dwSize.Y)
+            {
+                DrawLine("", info.dwSize.X, position.Y);
+                DrawLine("", info.dwSize.X, position.Y + 1);
+                SetConsoleCursorPosition(output, position);
+            }
+            previous.clear();
+        }
+    }
+
+    bool IsEnabled() const
+    {
+        return enabled;
+    }
+
+    void Show(ULONGLONG deadline, const string& line, bool limit_redraw = false)
+    {
+        if (!enabled)
+        {
+            return;
+        }
+        ULONGLONG now = GetTickCount64();
+        if (limit_redraw && !previous.empty() && now - last_draw < 100)
+        {
+            return;
+        }
+        string status = "Ожидаем допуска сервера...";
+        if (deadline != 0)
+        {
+            ULONGLONG seconds = deadline > now ? (deadline - now + 999) / 1000 : 0;
+            status = "Осталось " + to_string(seconds / 60) + " мин. " + to_string(seconds % 60) + " сек.";
+        }
+        string text = status + '\n' + line;
+        if (text != previous)
+        {
+            CONSOLE_SCREEN_BUFFER_INFO info;
+            if (!GetConsoleScreenBufferInfo(output, &info) || info.dwSize.Y < 3)
+            {
+                return;
+            }
+            if (previous.empty() || position.Y + 1 >= info.dwSize.Y)
+            {
+                cout.flush();
+                DWORD written;
+                if (!WriteConsoleW(output, L"\r\n\r\n", 4, &written, NULL) ||
+                    !GetConsoleScreenBufferInfo(output, &info))
+                {
+                    return;
+                }
+                position = { 0, static_cast<SHORT>(info.dwCursorPosition.Y - 2) };
+            }
+            DrawLine(status, info.dwSize.X, position.Y);
+            SHORT column = DrawLine(line, info.dwSize.X, position.Y + 1);
+            SetConsoleCursorPosition(output, { column, static_cast<SHORT>(position.Y + 1) });
+            previous = text;
+            last_draw = now;
+        }
+    }
+};
+
+
+bool ReadServerLine(SOCKET socket, string& pending, string& line, long wait_ms)
+{
+    if (pending.find('\n') == string::npos)
+    {
+        int ready = WaitForSocket(socket, wait_ms);
+        if (ready == 0)
+        {
+            return false;
+        }
+        char buffer[4096];
+        int bytes = ready == SOCKET_ERROR ? SOCKET_ERROR : recv(socket, buffer, sizeof(buffer), 0);
+        if (bytes <= 0)
+        {
+            throw string("Связь с сервером потеряна: сервер закрыл соединение без письма об отключении или недоступна сеть.\n");
+        }
+        pending.append(buffer, bytes);
+    }
+
+    size_t end = pending.find('\n');
+    if (end > 8192 && pending.size() > 8192)
+    {
+        throw string("Слишком длинное сообщение от сервера.\n");
+    }
+    if (end == string::npos)
+    {
+        return false;
+    }
+    line = pending.substr(0, end);
+    pending.erase(0, end + 1);
+    const string prefix = "MAIL DISCONNECTED ";
+    if (line.rfind(prefix, 0) == 0 && line != prefix + "DONE")
+    {
+        string reason = line.substr(prefix.size());
+        if (reason == "TIMEOUT") throw string("Письмо сервера: время вышло, соединение закрыто по таймауту.\n");
+        if (reason == "EXIT") throw string("Письмо сервера: соединение прервано командой exit.\n");
+        throw string("Письмо сервера: соединение завершилось с ошибкой.\n");
+    }
+    return true;
+}
+
+
+string WaitForReply(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLONG deadline, const string& hint, bool show_progress = false)
+{
+    string reply;
+    do
+    {
+        status.Show(deadline, hint, show_progress);
+    } while (!ReadServerLine(socket, pending, reply, 100));
+    if (!show_progress) status.Clear();
+    return reply;
+}
+
+
+void WaitForExchange(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLONG deadline, int delay, const string& progress)
+{
+    ULONGLONG end = GetTickCount64() + delay;
+    while (GetTickCount64() < end)
+    {
+        status.Show(deadline, progress, true);
+        string reply;
+        if (ReadServerLine(socket, pending, reply, 25))
+        {
+            throw string("Сервер завершил обмен раньше времени.\n");
+        }
+    }
+}
+
+
+string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLONG deadline, const string& prompt)
+{
+    HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode;
+    string value;
+    if (!GetConsoleMode(input, &mode))
+    {
+        cout << prompt << flush;
+        if (GetFileType(input) != FILE_TYPE_PIPE)
+        {
+            if (!getline(cin, value)) throw string("Ввод завершён.\n");
+            return value;
+        }
+        while (true)
+        {
+            status.Show(deadline, "Ожидаем ввода.");
+            string reply;
+            if (ReadServerLine(socket, pending, reply, 25))
+                throw string("Сервер завершил соединение во время ввода.\n");
+            DWORD available = 0;
+            if (!PeekNamedPipe(input, NULL, 0, NULL, &available, NULL))
+                throw string("Ввод завершён.\n");
+            if (available == 0) continue;
+            char symbol;
+            DWORD read;
+            if (!ReadFile(input, &symbol, 1, &read, NULL) || read != 1)
+                throw string("Ввод завершён.\n");
+            if (symbol == '\n')
+            {
+                status.Clear();
+                if (!value.empty() && value.back() == '\r') value.pop_back();
+                return value;
+            }
+            if (value.size() >= 4096) throw string("Слишком длинная строка ввода.\n");
+            value += symbol;
+        }
+    }
+
+    while (true)
+    {
+        status.Show(deadline, prompt + value);
+        string reply;
+        if (ReadServerLine(socket, pending, reply, 25))
+        {
+            throw string("Сервер завершил соединение во время ввода.\n");
+        }
+        if (WaitForSingleObject(input, 0) != WAIT_OBJECT_0)
+        {
+            continue;
+        }
+        INPUT_RECORD event;
+        DWORD read;
+        if (!ReadConsoleInputW(input, &event, 1, &read) || read != 1)
+        {
+            throw string("Не удалось прочитать ввод.\n");
+        }
+        if (event.EventType != KEY_EVENT || !event.Event.KeyEvent.bKeyDown)
+        {
+            continue;
+        }
+        const KEY_EVENT_RECORD& key = event.Event.KeyEvent;
+        if (key.wVirtualKeyCode == VK_RETURN)
+        {
+            status.Clear();
+            cout << prompt << value << '\n';
+            return value;
+        }
+        if (key.wVirtualKeyCode == VK_BACK)
+        {
+            if (!value.empty()) value.pop_back();
+        }
+        else if (key.uChar.UnicodeChar >= L' ' && key.uChar.UnicodeChar <= L'~' && value.size() < 63)
+        {
+            value += static_cast<char>(key.uChar.UnicodeChar);
+        }
+    }
+}
+
+
+ULONGLONG GetDeadline(const string& reply, const string& prefix)
+{
+    if (reply.rfind(prefix, 0) != 0)
+    {
+        throw string("Неожиданный ответ сервера: " + reply + ".\n");
+    }
+    return GetTickCount64() + GetNumber(reply.substr(prefix.size()), 1, 86400) * 1000ULL;
+}
+
+
 int main(int argc, char* argv[])
 {
     InitConsole();
-    if (argc > 4 || (argc > 1 && string(argv[1]) == "--help"))
+    bool discover = argc > 1 && string(argv[1]) == "--discover";
+    int max_args = discover ? 5 : 4;
+    if (argc > max_args || (argc > 1 && string(argv[1]) == "--help"))
     {
-        cout << "ClientT.exe [IPv4 сервера] [TCP-порт] [пауза между запросами, мс]\n"
+        cout << "ClientT.exe [имя DNS или IPv4] [TCP-порт] [пауза между запросами, мс]\n"
              << "По умолчанию: 127.0.0.1 2000 0\n"
-             << "ClientT.exe --discover [UDP-порт] [позывной] — поиск сервера в сети.\n"
-             << "Для проверки минутного таймера: ClientT.exe 127.0.0.1 2000 1000, затем echo и 70 сообщений.\n";
-        return argc > 4 ? 1 : 0;
+             << "ClientT.exe --discover [UDP-порт] [позывной] [пауза между запросами, мс]\n";
+        return argc > max_args ? 1 : 0;
     }
     WSADATA wsa_data;
     int error = WSAStartup(MAKEWORD(2, 2), &wsa_data);
@@ -406,11 +579,12 @@ int main(int argc, char* argv[])
         string server_ip = "127.0.0.1";
         int server_port = 2000;
         int delay = 0;
-        if (argc > 1 && string(argv[1]) == "--discover")
+        if (discover)
         {
             int udp_port = argc > 2 ? GetNumber(argv[2], 1, 65535) : 2000;
             string callsign = argc > 3 ? argv[3] : "FindServer";
             server_ip = FindServer(udp_port, callsign, server_port);
+            if (argc > 4) delay = GetNumber(argv[4], 0, 120000);
         }
         else
         {
@@ -419,32 +593,35 @@ int main(int argc, char* argv[])
             if (argc > 3) delay = GetNumber(argv[3], 0, 120000);
         }
         SOCKADDR_IN server_address = {};
-        server_address.sin_family = AF_INET;
-        server_address.sin_port = htons(static_cast<u_short>(server_port));
-        server_address.sin_addr.s_addr = inet_addr(server_ip.c_str());
-        if (server_address.sin_addr.s_addr == INADDR_NONE)
-            throw string("Укажите корректный IPv4-адрес сервера.\n");
+        int resolve_error = ResolveServer(server_ip, server_port, server_address);
+        if (resolve_error != 0)
+            throw SetErrorMessageText("Не удалось разрешить имя " + server_ip + ": ", resolve_error);
         client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (client_socket == INVALID_SOCKET)
             throw SetErrorMessageText("Ошибка socket: ", WSAGetLastError());
         cout << "========== ClientT ==========\nПодключение к " << server_ip << ':' << server_port << "...\n";
         if (connect(client_socket, (sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR)
             throw SetErrorMessageText("Ошибка connect: ", WSAGetLastError());
-        DWORD timeout = 65000;
-        setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout));
+        if (!EnableKeepAlive(client_socket))
+            throw SetErrorMessageText("Ошибка настройки контроля соединения: ", WSAGetLastError());
+        DWORD timeout = 2000;
         setsockopt(client_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
-        cout << "Соединение установлено.\n"
+
+        ConsoleStatus status;
+        string pending;
+        ULONGLONG deadline = GetDeadline(WaitForReply(client_socket, pending, status, 0,
+            "TCP-соединение установлено. Ожидаем приёма клиента."), "MAIL CONNECTED ");
+        cout << "Письмо сервера: подключение принято.\n"
              << "  echo — возврат отправленных сообщений\n"
              << "  time — дата и время сервера\n"
              << "  rand — случайное 32-битное целое число\n"
-             << "Другой код — проверка ErrorInquiry. Количество вводится отдельно.\n";
+             << "Другой код — проверка ErrorInquiry.\n";
         string request_cmd;
         while (true)
         {
-            cout << "\nСервис> " << flush;
-            if (!getline(cin, request_cmd)) throw string("Ввод завершён.\n");
+            request_cmd = ReadInput(client_socket, pending, status, deadline, "Сервис> ");
             if (!request_cmd.empty() && request_cmd.size() < 50 && request_cmd.find_first_of(" \t\r") == string::npos) break;
-            cout << "Введите один код, например echo. Число сообщений будет запрошено отдельно.\n";
+            cout << "Введите один код, например echo.\n";
         }
         bool known_service = request_cmd == "echo" || request_cmd == "time" || request_cmd == "rand";
         int messages_count = 0;
@@ -452,9 +629,7 @@ int main(int argc, char* argv[])
         {
             while (true)
             {
-                cout << "Количество сообщений (1..1000000)> " << flush;
-                string value;
-                if (!getline(cin, value)) throw string("Ввод завершён.\n");
+                string value = ReadInput(client_socket, pending, status, deadline, "Количество сообщений (1..1000000)> ");
                 try
                 {
                     messages_count = GetNumber(value, 1, 1000000);
@@ -468,51 +643,38 @@ int main(int argc, char* argv[])
         }
         if (!SendLine(client_socket, request_cmd))
             throw SetErrorMessageText("Ошибка отправки кода запроса: ", WSAGetLastError());
-        string answer;
-        if (ReceiveLine(client_socket, answer) != 1)
-            throw string("Сервер отключился до подтверждения сервиса.\n");
+        string answer = WaitForReply(client_socket, pending, status, deadline, "Ожидаем запуска сервиса.");
         if (answer == "ErrorInquiry")
         {
             cout << "Сервер ответил ErrorInquiry: сервис '" << request_cmd << "' не существует.\n";
-        }
-        else if (answer != "OK")
-        {
-            throw string("Сервер не запустил сервис: " + answer + ".\n");
+            WaitForReply(client_socket, pending, status, deadline, "Ожидаем письма об отключении.");
         }
         else
         {
+            deadline = GetDeadline(answer, "OK ");
             cout << "Сервис '" << request_cmd << "' запущен. Начинаем обмен.\n";
             auto start_time = chrono::steady_clock::now();
+            string progress = "Ожидаем первого ответа.";
             for (int i = 1; i <= messages_count; i++)
             {
                 string message = request_cmd == "echo" ? "Hello from Client " + to_string(i) : request_cmd;
                 if (!SendLine(client_socket, message))
                     throw SetErrorMessageText("Ошибка отправки: ", WSAGetLastError());
-                if (request_cmd == "rand")
-                {
-                    int32_t number;
-                    if (!ReceiveAll(client_socket, reinterpret_cast<char*>(&number), sizeof(number)))
-                        throw string("Сервер закрыл соединение при чтении rand. Возможен лимит 60 секунд.\n");
-                    cout << '[' << i << '/' << messages_count << "] rand = " << number << '\n';
-                }
-                else
-                {
-                    if (ReceiveLine(client_socket, answer) != 1)
-                        throw string("Сервер закрыл соединение при чтении ответа. Возможен лимит 60 секунд.\n");
-                    cout << '[' << i << '/' << messages_count << "] " << answer << '\n';
-                }
-                if (delay > 0 && i < messages_count) Sleep(delay);
+                answer = WaitForReply(client_socket, pending, status, deadline, progress, true);
+                if (answer.rfind("DATA ", 0) != 0)
+                    throw string("Неожиданный ответ сервиса: " + answer + ".\n");
+                progress = '[' + to_string(i) + '/' + to_string(messages_count) + "] " + answer.substr(5);
+                if (!status.IsEnabled()) cout << progress << '\n' << flush;
+                if (delay > 0 && i < messages_count)
+                    WaitForExchange(client_socket, pending, status, deadline, delay, progress);
             }
-            if (request_cmd != "echo" && !SendLine(client_socket, "stop"))
-                throw string("Не удалось отправить завершение сервиса.\n");
-            shutdown(client_socket, SD_SEND);
-            char buffer[256];
-            int received;
-            do { received = recv(client_socket, buffer, sizeof(buffer), 0); } while (received > 0);
-            if (received == SOCKET_ERROR)
-                throw SetErrorMessageText("Ошибка завершения обмена: ", WSAGetLastError());
+            if (!SendLine(client_socket, "stop"))
+                throw SetErrorMessageText("Ошибка завершения сервиса: ", WSAGetLastError());
+            answer = WaitForReply(client_socket, pending, status, deadline, "Ожидаем письма об отключении.");
+            if (answer != "MAIL DISCONNECTED DONE")
+                throw string("Сервер не подтвердил завершение обмена.\n");
             double seconds = chrono::duration<double>(chrono::steady_clock::now() - start_time).count();
-            cout << "Обмен завершён: " << messages_count << " ответов, " << seconds << " с.\n";
+            cout << "Письмо сервера: обслуживание завершено. Ответов: " << messages_count << ", " << seconds << " с.\n";
         }
     }
     catch (const string& message)

@@ -5,10 +5,7 @@
 #include <random>
 #include <cstdint>
 #include <cstdio>
-#include <winsock2.h>
-#include <windows.h>
-#include <string>
-#include <clocale>
+#include "../ServerCommon.h"
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -21,41 +18,16 @@ using namespace std;
 typedef DWORD(WINAPI* tsServer)(LPVOID);
 
 
-enum ContactStatus
-{
-    ACCEPT,
-    SERVICED,
-    FINISHED
-};
-
-
-struct Contact
-{
-    SOCKET client_socket = INVALID_SOCKET;
-    SOCKADDR_IN params = {};
-    int lprms = sizeof(params);
-    volatile LONG status = ACCEPT;
-    HANDLE h_accept_thread = NULL;
-    char service_name[50] = {};
-    HANDLE h_timer = NULL;
-    HANDLE h_service_thread = NULL;
-    volatile LONG is_error = FALSE;
-    volatile LONG pending_apc = 0;
-    bool timer_armed = false;
-    int request_length = 0;
-    ULONGLONG request_deadline = 0;
-    SYSTEMTIME start_time = {};
-    SYSTEMTIME finish_time = {};
-    void (*log_message)(const std::string&) = nullptr;
-};
-
-
 struct ServiceList
 {
     char IdRequest[50];
     tsServer service;
 };
 
+
+DWORD WINAPI EchoServer(LPVOID lp_param);
+DWORD WINAPI TimeServer(LPVOID lp_param);
+DWORD WINAPI RandServer(LPVOID lp_param);
 
 ServiceList TableService[] = {
     { "echo", EchoServer },
@@ -64,74 +36,32 @@ ServiceList TableService[] = {
 };
 
 
-inline void InitConsole()
-{
-    SetConsoleCP(CP_UTF8);
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, ".UTF8");
-}
-
-
-inline bool SendAll(SOCKET socket, const char* data, int size)
-{
-    int sent = 0;
-    while (sent < size)
-    {
-        int bytes = send(socket, data + sent, size - sent, 0);
-        if (bytes <= 0)
-        {
-            return false;
-        }
-        sent += bytes;
-    }
-    return true;
-}
-
-
-inline bool SendLine(SOCKET socket, const std::string& text)
-{
-    std::string message = text + '\n';
-    return SendAll(socket, message.data(), static_cast<int>(message.size()));
-}
-
-
-inline int ReceiveLine(SOCKET socket, std::string& text)
+bool ReceiveServiceLine(Contact* contact, string& text)
 {
     text.clear();
-    char symbol;
-    while (true)
+    while (ReadCounter(contact->finish_reason) == DONE)
     {
-        int bytes = recv(socket, &symbol, 1, 0);
-        if (bytes <= 0)
+        int ready = WaitForSocket(contact->client_socket, 100);
+        if (ready == 0)
         {
-            return bytes == 0 && text.empty() ? 0 : -1;
+            continue;
+        }
+        char symbol;
+        if (ready == SOCKET_ERROR || recv(contact->client_socket, &symbol, 1, 0) != 1)
+        {
+            return false;
         }
         if (symbol == '\n')
         {
-            return 1;
+            return true;
         }
-        text += symbol;
-        if (text.size() > 4096)
-        {
-            return -1;
-        }
-    }
-}
-
-
-inline bool ReceiveAll(SOCKET socket, char* data, int size)
-{
-    int received = 0;
-    while (received < size)
-    {
-        int bytes = recv(socket, data + received, size - received, 0);
-        if (bytes <= 0)
+        if (text.size() >= 4096)
         {
             return false;
         }
-        received += bytes;
+        text += symbol;
     }
-    return true;
+    return false;
 }
 
 
@@ -156,10 +86,6 @@ VOID CALLBACK OnServiceStop(ULONG_PTR dwParam)
 {
     Contact* contact = (Contact*)dwParam;
     PrintServiceEvent(contact, "СТОП", contact->finish_time);
-    if (contact->h_timer != NULL)
-    {
-        CancelWaitableTimer(contact->h_timer);
-    }
     InterlockedDecrement(&contact->pending_apc);
 }
 
@@ -186,7 +112,7 @@ void FinishService(Contact* contact, bool is_error)
 {
     if (is_error)
     {
-        InterlockedExchange(&contact->is_error, TRUE);
+        InterlockedCompareExchange(&contact->finish_reason, FAILED, DONE);
     }
     GetLocalTime(&contact->finish_time);
     QueueServiceEvent(contact, OnServiceStop);
@@ -198,22 +124,15 @@ DWORD WINAPI EchoServer(LPVOID lp_param)
 {
     Contact* contact = (Contact*)lp_param;
     StartService(contact);
-    char buffer[4096];
-    bool is_error = false;
-    while (true)
+    string request;
+    while (ReceiveServiceLine(contact, request))
     {
-        int bytes = recv(contact->client_socket, buffer, sizeof(buffer), 0);
-        if (bytes == 0)
+        if (request == "stop" || !SendLine(contact->client_socket, "DATA " + request))
         {
-            break;
-        }
-        if (bytes == SOCKET_ERROR || !SendAll(contact->client_socket, buffer, bytes))
-        {
-            is_error = true;
             break;
         }
     }
-    FinishService(contact, is_error);
+    FinishService(contact, request != "stop");
     return 0;
 }
 
@@ -223,20 +142,18 @@ DWORD WINAPI TimeServer(LPVOID lp_param)
     Contact* contact = (Contact*)lp_param;
     StartService(contact);
     string request;
-    int result = 0;
-    bool is_error = false;
-    while ((result = ReceiveLine(contact->client_socket, request)) == 1 && request == "time")
+    while (ReceiveServiceLine(contact, request) && request == "time")
     {
         time_t now = time(nullptr);
         tm local_time = {};
         char time_str[32];
-        if (localtime_s(&local_time, &now) != 0 || strftime(time_str, sizeof(time_str), "%d.%m.%Y/%H:%M:%S", &local_time) == 0 || !SendLine(contact->client_socket, time_str))
+        if (localtime_s(&local_time, &now) != 0 || strftime(time_str, sizeof(time_str), "%d.%m.%Y/%H:%M:%S", &local_time) == 0 ||
+            !SendLine(contact->client_socket, "DATA " + string(time_str)))
         {
-            is_error = true;
             break;
         }
     }
-    FinishService(contact, is_error || result < 0);
+    FinishService(contact, request != "stop");
     return 0;
 }
 
@@ -246,29 +163,23 @@ DWORD WINAPI RandServer(LPVOID lp_param)
     Contact* contact = (Contact*)lp_param;
     StartService(contact);
     string request;
-    int result = 0;
-    bool is_error = false;
     try
     {
         mt19937 generator(random_device{}());
         uniform_int_distribution<int32_t> distribution(INT32_MIN, INT32_MAX);
-        while ((result = ReceiveLine(contact->client_socket, request)) == 1 && request == "rand")
+        while (ReceiveServiceLine(contact, request) && request == "rand")
         {
-            int32_t number = distribution(generator);
-            if (!SendAll(contact->client_socket, reinterpret_cast<const char*>(&number), sizeof(number)))
+            if (!SendLine(contact->client_socket, "DATA " + to_string(distribution(generator))))
             {
-                is_error = true;
                 break;
             }
         }
-        is_error = is_error || result < 0;
     }
     catch (...)
     {
-        is_error = true;
         contact->log_message("[RandServer] Не удалось сформировать случайное число.");
     }
-    FinishService(contact, is_error);
+    FinishService(contact, request != "stop");
     return 0;
 }
 

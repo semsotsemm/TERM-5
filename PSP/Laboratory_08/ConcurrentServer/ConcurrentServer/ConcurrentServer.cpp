@@ -1,11 +1,8 @@
-﻿#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 
 #pragma comment(lib, "WS2_32.lib")
 
-#include <clocale>
-#include <string>
-#include <winsock2.h>
-#include <windows.h>
+#include "../ServerCommon.h"
 #include <list>
 #include <atomic>
 #include <mutex>
@@ -22,6 +19,7 @@ using namespace std;
 
 int PORT = 2000;
 int UDP_PORT = 2000;
+int SERVICE_TIMEOUT = 180;
 
 string DLL_NAME = "ServiceLibrary.dll";
 
@@ -38,16 +36,10 @@ CRITICAL_SECTION scListContact;
 
 volatile LONG stat_total_connections = 0;
 volatile LONG stat_total_rejections = 0;
+volatile LONG stat_timeouts = 0;
 volatile LONG stat_successful_connections = 0;
 volatile LONG stat_active_connections = 0;
 
-
-enum ContactStatus
-{
-    ACCEPT,
-    SERVICED,
-    FINISHED
-};
 
 enum TalkersCommand {
     START,
@@ -59,27 +51,6 @@ enum TalkersCommand {
     GETCOMMAND
 };
 
-struct Contact
-{
-    SOCKET client_socket = INVALID_SOCKET;
-    SOCKADDR_IN params = {};
-    int lprms = sizeof(params);
-    volatile LONG status = ACCEPT;
-    HANDLE h_accept_thread = NULL;
-    char service_name[50] = {};
-    HANDLE h_timer = NULL;
-    HANDLE h_service_thread = NULL;
-    volatile LONG is_error = FALSE;
-    volatile LONG pending_apc = 0;
-    bool timer_armed = false;
-    int request_length = 0;
-    ULONGLONG request_deadline = 0;
-    SYSTEMTIME start_time = {};
-    SYSTEMTIME finish_time = {};
-    void (*log_message)(const std::string&) = nullptr;
-};
-
-
 list<Contact> contacts;
 
 // Имя сервиса и параметры
@@ -87,83 +58,6 @@ typedef HANDLE(*SSS_Function)(const char*, LPVOID);
 SSS_Function SSS = NULL;
 
 VOID CALLBACK TimerAPCProc(LPVOID lpArgToCompletionRoutine, DWORD dwTimerLowValue, DWORD dwTimerHighValue);
-
-
-inline void InitConsole()
-{
-    SetConsoleCP(CP_UTF8);
-    SetConsoleOutputCP(CP_UTF8);
-    setlocale(LC_ALL, ".UTF8");
-}
-
-
-inline LONG ReadCounter(volatile LONG& value)
-{
-    return InterlockedCompareExchange(&value, 0, 0);
-}
-
-
-inline bool SendAll(SOCKET socket, const char* data, int size)
-{
-    int sent = 0;
-    while (sent < size)
-    {
-        int bytes = send(socket, data + sent, size - sent, 0);
-        if (bytes <= 0)
-        {
-            return false;
-        }
-        sent += bytes;
-    }
-    return true;
-}
-
-
-inline bool SendLine(SOCKET socket, const std::string& text)
-{
-    std::string message = text + '\n';
-    return SendAll(socket, message.data(), static_cast<int>(message.size()));
-}
-
-
-inline int ReceiveLine(SOCKET socket, std::string& text)
-{
-    text.clear();
-    char symbol;
-    while (true)
-    {
-        int bytes = recv(socket, &symbol, 1, 0);
-        if (bytes <= 0)
-        {
-            return bytes == 0 && text.empty() ? 0 : -1;
-        }
-        if (symbol == '\n')
-        {
-            return 1;
-        }
-        text += symbol;
-        if (text.size() > 4096)
-        {
-            return -1;
-        }
-    }
-}
-
-
-inline bool ReceiveAll(SOCKET socket, char* data, int size)
-{
-    int received = 0;
-    while (received < size)
-    {
-        int bytes = recv(socket, data + received, size - received, 0);
-        if (bytes <= 0)
-        {
-            return false;
-        }
-        received += bytes;
-    }
-    return true;
-}
 
 
 string SetErrorMessageText(string message_text, int error_code) {
@@ -376,16 +270,17 @@ string GetStatistics()
     string result = "statistics\nВсего подключений:   " + to_string(ReadCounter(stat_total_connections)) +
         "\nОтказов/ошибок:      " + to_string(ReadCounter(stat_total_rejections)) +
         "\nУспешно завершено:   " + to_string(ReadCounter(stat_successful_connections)) +
+        "\nЗавершено по таймауту: " + to_string(ReadCounter(stat_timeouts)) +
         "\nАктивных клиентов:   " + to_string(ReadCounter(stat_active_connections));
     LeaveCriticalSection(&scListContact);
     return result;
 }
 
 
-void FinishWithoutService(Contact& contact, const string& reason)
+void FinishWithoutService(Contact& contact, const string& reason, FinishReason result = FAILED)
 {
     LogMessage("[DispatchServer] " + ClientAddress(contact) + ": " + reason);
-    InterlockedExchange(&contact.is_error, TRUE);
+    InterlockedExchange(&contact.finish_reason, result);
     InterlockedExchange(&contact.status, FINISHED);
 }
 
@@ -475,7 +370,12 @@ bool AcceptCycle(int accept_attempts, SOCKET server_socket)
             }
         
             rc = true;
-            contact.request_deadline = GetTickCount64() + 60000;
+            contact.request_deadline = GetTickCount64() + SERVICE_TIMEOUT * 1000ULL;
+            if (!EnableKeepAlive(contact.client_socket) ||
+                !SendLine(contact.client_socket, "MAIL CONNECTED " + to_string(SERVICE_TIMEOUT)))
+            {
+                FinishWithoutService(contact, "не удалось отправить письмо о подключении.");
+            }
            
             EnterCriticalSection(&scListContact);
             
@@ -485,7 +385,7 @@ bool AcceptCycle(int accept_attempts, SOCKET server_socket)
             
             LeaveCriticalSection(&scListContact);
             
-            LogMessage("[AcceptServer] Подключён клиент " + ClientAddress(contact) + ".");
+            LogMessage("[Письмо] Подключён клиент " + ClientAddress(contact) + ".");
             SetEvent(g_hAcceptEvent);
         }
         else if (WSAGetLastError() != WSAEWOULDBLOCK)
@@ -547,7 +447,7 @@ void CommandsCycle(atomic<TalkersCommand>& cmd, SOCKET server_socket)
             default:
                 break;
         }
-        if (is_accepting && cmd.load() != EXIT)
+        if (is_accepting && cmd.load() == GETCOMMAND)
         {
             AcceptCycle(1, server_socket);
         }
@@ -560,8 +460,7 @@ void CommandsCycle(atomic<TalkersCommand>& cmd, SOCKET server_socket)
     {
         if (ReadCounter(contact.status) != FINISHED)
         {
-            InterlockedExchange(&contact.is_error, TRUE);
-            shutdown(contact.client_socket, SD_BOTH);
+            InterlockedCompareExchange(&contact.finish_reason, SERVER_EXIT, DONE);
             if (ReadCounter(contact.status) == ACCEPT)
             {
                 InterlockedExchange(&contact.status, FINISHED);
@@ -639,7 +538,18 @@ DWORD WINAPI GarbageCleaner(LPVOID lp_param)
             bool thread_finished = it->h_service_thread == NULL || WaitForSingleObject(it->h_service_thread, 0) == WAIT_OBJECT_0;
             if (ReadCounter(it->status) == FINISHED && thread_finished && ReadCounter(it->pending_apc) == 0 && !it->timer_armed)
             {
-                LogMessage("[GarbageCleaner] Клиент " + ClientAddress(*it) + (ReadCounter(it->is_error) ? ": завершён с отказом/ошибкой." : ": обслуживание завершено."));
+                LONG result = ReadCounter(it->finish_reason);
+                string reason;
+                switch (result)
+                {
+                    case TIMED_OUT: reason = "TIMEOUT"; break;
+                    case SERVER_EXIT: reason = "EXIT"; break;
+                    case DONE: reason = "DONE"; break;
+                    default: reason = "ERROR"; break;
+                }
+                LogMessage("[Письмо] Отключён клиент " + ClientAddress(*it) + ": " + reason + ".");
+                SendLine(it->client_socket, "MAIL DISCONNECTED " + reason);
+                shutdown(it->client_socket, SD_SEND);
                 closesocket(it->client_socket);
                 
                 if (it->h_timer)
@@ -652,13 +562,17 @@ DWORD WINAPI GarbageCleaner(LPVOID lp_param)
                     CloseHandle(it->h_service_thread);
                 }
                 
-                if (ReadCounter(it->is_error))
+                if (result == TIMED_OUT)
                 {
-                    InterlockedIncrement(&stat_total_rejections);
+                    InterlockedIncrement(&stat_timeouts);
+                }
+                else if (result == DONE)
+                {
+                    InterlockedIncrement(&stat_successful_connections);
                 }
                 else
                 {
-                    InterlockedIncrement(&stat_successful_connections);
+                    InterlockedIncrement(&stat_total_rejections);
                 }
 
                 InterlockedDecrement(&stat_active_connections);
@@ -683,9 +597,11 @@ VOID CALLBACK TimerAPCProc(LPVOID lp_arg, DWORD, DWORD)
     EnterCriticalSection(&scListContact);
     if (ReadCounter(contact->status) == SERVICED)
     {
-        LogMessage("[Таймер] Сервис '" + string(contact->service_name) + "', клиент " + ClientAddress(*contact) + ": превышен лимит 60 секунд. Прерываем ожидание сокета.");
-        InterlockedExchange(&contact->is_error, TRUE);
-        shutdown(contact->client_socket, SD_BOTH);
+        if (InterlockedCompareExchange(&contact->finish_reason, TIMED_OUT, DONE) == DONE)
+        {
+            LogMessage("[Таймер] Сервис '" + string(contact->service_name) + "', клиент " + ClientAddress(*contact)
+                + ": превышен лимит " + to_string(SERVICE_TIMEOUT) + " сек.");
+        }
     }
     LeaveCriticalSection(&scListContact);
 }
@@ -706,6 +622,16 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
             {
                 continue;
             }
+            if (command->load() == EXIT)
+            {
+                continue;
+            }
+            if (GetTickCount64() >= contact.request_deadline)
+            {
+                FinishWithoutService(contact, "истекло время на выбор сервиса.", TIMED_OUT);
+                continue;
+            }
+
             bool request_ready = false;
             char symbol;
             for (int i = 0; i < 50; i++)
@@ -740,10 +666,6 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
             
             if (!request_ready)
             {
-                if (GetTickCount64() >= contact.request_deadline)
-                {
-                    FinishWithoutService(contact, "код запроса не получен за 60 секунд.");
-                }
                 continue;
             }
             
@@ -756,7 +678,7 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
                 continue;
             }
             
-            DWORD timeout = 5000;
+            DWORD timeout = 1000;
             setsockopt(contact.client_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
             
             contact.h_service_thread = SSS(contact.service_name, &contact);
@@ -786,7 +708,7 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
             InterlockedExchange(&contact.status, SERVICED);
             
             LARGE_INTEGER interval;
-            interval.QuadPart = -600000000LL;
+            interval.QuadPart = -10000000LL * SERVICE_TIMEOUT;
             // ..., ..., сколько раз сработает, 
             if (!SetWaitableTimer(contact.h_timer, &interval, 0, TimerAPCProc, &contact, FALSE))
             {
@@ -801,10 +723,9 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
 
             contact.timer_armed = true;
             SetThreadPriority(contact.h_service_thread, THREAD_PRIORITY_NORMAL);
-            if (!SendLine(contact.client_socket, "OK"))
+            if (!SendLine(contact.client_socket, "OK " + to_string(SERVICE_TIMEOUT)))
             {
-                InterlockedExchange(&contact.is_error, TRUE);
-                shutdown(contact.client_socket, SD_BOTH);
+                InterlockedCompareExchange(&contact.finish_reason, FAILED, DONE);
             }
 
             ResumeThread(contact.h_service_thread);
@@ -956,6 +877,18 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
             {
                 break;
             }
+            if (next == EXIT || next == SHUTDOWN)
+            {
+                // Даём ClientNP прочитать ответ и закрыть свой конец канала.
+                ULONGLONG deadline = GetTickCount64() + 1000;
+                while (GetTickCount64() < deadline && PeekNamedPipe(h_pipe, NULL, 0, NULL, NULL, NULL))
+                {
+                    Sleep(20);
+                }
+                CloseHandle(h_pipe);
+                LogMessage("[ConsolePipe] Консоль управления отключена.");
+                return 0;
+            }
         }
         DisconnectNamedPipe(h_pipe);
         LogMessage("[ConsolePipe] Консоль управления отключена.");
@@ -983,10 +916,10 @@ int main(int argc, char* argv[])
 {
     InitConsole();
 
-    if (argc > 6 || (argc > 1 && string(argv[1]) == "--help"))
+    if (argc > 7 || (argc > 1 && string(argv[1]) == "--help"))
     {
-        cout << "Использование: ConcurrentServer.exe [TCP-порт] [DLL] [Имя канала] [UDP-порт] [Широковещательный позывной]\n" << "По умолчанию: [2000] [ServiceLibrary.dll] [\\\\.\\pipe\\ServerPipe] [2000] [FindServer]\n";
-        return argc > 6 ? 1 : 0;
+        cout << "Использование: ConcurrentServer.exe [TCP-порт] [DLL] [Имя канала] [UDP-порт] [Широковещательный позывной] [Таймаут, сек]\n" << "По умолчанию: [2000] [ServiceLibrary.dll] [\\\\.\\pipe\\ServerPipe] [2000] [FindServer] [180]\n";
+        return argc > 7 ? 1 : 0;
     }
     try
     {
@@ -1010,6 +943,10 @@ int main(int argc, char* argv[])
         {
             CALLSIGN = argv[5];
         }
+        if (argc > 6)
+        {
+            SERVICE_TIMEOUT = ParseNumber(argv[6], 1, 86400);
+        }
         if (CALLSIGN.empty() || CALLSIGN.size() > 255)
         {
             throw string("Позывной должен содержать от 1 до 255 байт.\n");
@@ -1022,7 +959,7 @@ int main(int argc, char* argv[])
     }
     catch (const exception&)
     {
-        cerr << "Номер порта должен быть целым числом от 1 до 65535.\n";
+        cerr << "Порты: 1..65535. Таймаут: целое число от 1 до 86400 секунд.\n";
         return 1;
     }
 
@@ -1051,7 +988,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) + " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME + "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit).\n" + "Клиенты: ClientT.exe [IPv4] [TCP-порт]. Сервисы: echo, time, rand.");
+    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) + " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME + " | Таймаут: " + to_string(SERVICE_TIMEOUT) + " сек." + "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit).\n" + "Клиенты: ClientT.exe [имя или IPv4] [TCP-порт]. Сервисы: echo, time, rand.");
    
     InitializeCriticalSection(&scListContact);
     
