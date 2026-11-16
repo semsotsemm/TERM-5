@@ -11,7 +11,8 @@ DECLARE
         WHERE 
             -- Разница между годом и годом рождения должна делиться на 5
             MOD((EXTRACT(YEAR FROM SYSDATE) + 1) - EXTRACT(YEAR FROM BIRTHDAY), 5) = 0
-            AND BIRTHDAY IS NOT NULL;
+            AND
+            BIRTHDAY IS NOT NULL;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Юбиляры следующего года ---');
     

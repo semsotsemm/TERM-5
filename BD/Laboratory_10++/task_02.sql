@@ -4,6 +4,7 @@ DECLARE
     CURSOR c_teachers IS 
         SELECT tch.TEACHER_NAME
         FROM TEACHER tch;
+        
 BEGIN
     OPEN c_teachers;
     

@@ -27,8 +27,7 @@ namespace
     double UpperHemisphere(double x, double y)
     {
         const double squared_height = 9.0 - x * x - y * y;
-        return squared_height >= 0.0 ? std::sqrt(squared_height)
-            : std::numeric_limits<double>::quiet_NaN();
+        return squared_height >= 0.0 ? std::sqrt(squared_height) : std::numeric_limits<double>::quiet_NaN();
     }
 
     bool ReadAngle(HWND dialog, int control_id, double& value)

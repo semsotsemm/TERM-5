@@ -1,21 +1,12 @@
-SET SERVEROUTPUT ON;
 
 DECLARE
     CURSOR c_avg_salary IS
-        SELECT 
-            p.FACULTY,
-            t.PULPIT,
-            FLOOR(AVG(t.SALARY)) AS AVG_SALARY,
-            GROUPING(p.FACULTY) AS is_total_all,
-            GROUPING(t.PULPIT) AS is_total_faculty
-        FROM 
-            TEACHER t
-        JOIN 
-            PULPIT p ON t.PULPIT = p.PULPIT
-        GROUP BY 
-            ROLLUP(p.FACULTY, t.PULPIT)
-        ORDER BY 
-            is_total_all, p.FACULTY, is_total_faculty, t.PULPIT;
+        SELECT p.FACULTY, t.PULPIT, FLOOR(AVG(t.SALARY)) AS AVG_SALARY, GROUPING(p.FACULTY) AS is_total_all, GROUPING(t.PULPIT) AS is_total_faculty
+        FROM TEACHER t
+        JOIN PULPIT p 
+        ON t.PULPIT = p.PULPIT
+        GROUP BY ROLLUP(p.FACULTY, t.PULPIT)
+        ORDER BY is_total_all, p.FACULTY, is_total_faculty, t.PULPIT;
 BEGIN
     DBMS_OUTPUT.PUT_LINE('--- Средняя заработная плата ---');
     

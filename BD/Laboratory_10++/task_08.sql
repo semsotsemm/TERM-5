@@ -1,5 +1,3 @@
-SET SERVEROUTPUT ON;
-
 DECLARE
     TYPE t_address IS RECORD (
         city    VARCHAR2(50),
