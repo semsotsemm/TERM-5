@@ -1,0 +1,12 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="OS11_HTAPI/OS11_HTAPI.vcxproj" Id="11c9ddf9-3f8e-4d11-81b0-365f72e26100" />
+  <Project Path="OS11_CREATE/OS11_CREATE.vcxproj" Id="11c9ddf9-3f8e-4d11-81b0-365f72e26101" />
+  <Project Path="OS11_START/OS11_START.vcxproj" Id="11c9ddf9-3f8e-4d11-81b0-365f72e26102" />
+  <Project Path="OS11_02/OS11_02.vcxproj" Id="11c9ddf9-3f8e-4d11-81b0-365f72e26103" />
+  <Project Path="OS11_03/OS11_03.vcxproj" Id="11c9ddf9-3f8e-4d11-81b0-365f72e26104" />
+  <Project Path="OS11_04/OS11_04.vcxproj" Id="11c9ddf9-3f8e-4d11-81b0-365f72e26105" />
+</Solution>
