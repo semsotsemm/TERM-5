@@ -3,5 +3,10 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Lab-06a/Lab-06a.vcxproj" Id="b5de3c32-7a76-402a-a6b7-63daf036cc90" />
+  <Project Path="D:/WorkSpace/TERM-5/OS/Laboratory_06/Windows/Lab-06/Lab-06a/Lab-06a.vcxproj" Id="b5de3c32-7a76-402a-a6b7-63daf036cc90" />
+  <Project Path="D:/WorkSpace/TERM-5/OS/Laboratory_06/Windows/Lab-06/Lab-06b/Lab-06b.vcxproj" Id="9cac11ba-882e-4b43-87bc-18d29ec2afa0" />
+  <Project Path="Lab-06-bar/Lab-06-bar.vcxproj" Id="2cd2d825-858c-471f-a939-0fa01d5e6f67" />
+  <Project Path="Lab-06-conds/Lab-06-conds.vcxproj" Id="db21567f-c836-446f-a173-66a98cc43a17" />
+  <Project Path="Lab-06c/Lab-06c.vcxproj" Id="b591ce17-da12-47aa-a0be-9f4b149ec18e" />
+  <Project Path="Lab-06d/Lab-06d.vcxproj" Id="27cea912-64ca-4d0c-b714-f02094897433" />
 </Solution>
