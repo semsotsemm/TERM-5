@@ -1,0 +1,45 @@
+﻿#pragma code_page(65001)
+#include <windows.h>
+#include "resource.h"
+
+IDR_FIGURE_MENU MENU
+BEGIN
+    POPUP "&Фигура"
+    BEGIN
+        MENUITEM "Координаты камеры...", IDM_CAMERA
+        MENUITEM "Координаты источника света...", IDM_LIGHT
+        MENUITEM "Цвет источника света...", IDM_LIGHT_COLOR
+        MENUITEM SEPARATOR
+        MENUITEM "Пирамида", IDM_PYRAMID
+    END
+END
+
+IDD_CAMERA DIALOGEX 0, 0, 256, 119
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Координаты камеры"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Радиус r = 10", -1, 12, 10, 232, 12
+    LTEXT           "&φ — азимут, градусы", -1, 12, 31, 164, 12
+    EDITTEXT        IDC_PHI, 184, 28, 60, 14, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "&θ — угол от оси Z, 0–180°", -1, 12, 51, 164, 12
+    EDITTEXT        IDC_THETA, 184, 48, 60, 14, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "", IDC_ANGLE_ERROR, 12, 69, 232, 21
+    DEFPUSHBUTTON   "Применить", IDOK, 111, 94, 65, 16
+    PUSHBUTTON      "Отмена", IDCANCEL, 184, 94, 60, 16
+END
+
+IDD_LIGHT DIALOGEX 0, 0, 256, 119
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Координаты источника света"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Радиус r = 100", -1, 12, 10, 232, 12
+    LTEXT           "&φ — азимут, градусы", -1, 12, 31, 164, 12
+    EDITTEXT        IDC_PHI, 184, 28, 60, 14, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "&θ — угол от оси Z, 0–180°", -1, 12, 51, 164, 12
+    EDITTEXT        IDC_THETA, 184, 48, 60, 14, ES_AUTOHSCROLL | WS_TABSTOP
+    LTEXT           "", IDC_ANGLE_ERROR, 12, 69, 232, 21
+    DEFPUSHBUTTON   "Применить", IDOK, 111, 94, 65, 16
+    PUSHBUTTON      "Отмена", IDCANCEL, 184, 94, 60, 16
+END

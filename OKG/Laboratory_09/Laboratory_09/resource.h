@@ -1,0 +1,14 @@
+﻿#pragma once
+
+#define IDR_FIGURE_MENU 101
+#define IDD_CAMERA 102
+#define IDD_LIGHT 103
+
+#define IDM_CAMERA 1001
+#define IDM_LIGHT 1002
+#define IDM_LIGHT_COLOR 1003
+#define IDM_PYRAMID 1004
+
+#define IDC_PHI 2001
+#define IDC_THETA 2002
+#define IDC_ANGLE_ERROR 2003
