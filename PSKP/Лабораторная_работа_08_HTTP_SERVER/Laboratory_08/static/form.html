@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ПСКП 8</title>
+</head>
+<body>
+<form method="POST" action="/formparameter">
+    <p>Текст:
+        <input type="text" name="text_input">
+    </p>
+    <p>Число:
+        <input type="number" name="number_input">
+    </p>
+    <p>Дата:
+        <input type="date" name="date_input">
+    </p>
+
+    <p>
+        Чекбоксы:
+        <label>
+            <input type="checkbox" name="checkbox_input" value="opt1"> Вариант 1
+        </label>
+        <label>
+            <input type="checkbox" name="checkbox_input" value="opt2"> Вариант 2
+        </label>
+    </p>
+
+    <p>
+        Радиокнопки:
+        <label>
+            <input type="radio" name="radio_input" value="radio1" checked> Радио 1
+        </label>
+        <label>
+            <input type="radio" name="radio_input" value="radio2"> Радио 2
+        </label>
+    </p>
+
+    <p>
+        Текстовое поле:
+        <br>
+        <textarea name="textarea_input" rows="4" cols="30"></textarea>
+    </p>
+
+    <p>
+        <input type="submit" name="submit_btn" value="Отправить (кнопка 1)">
+        <input type="submit" name="submit_btn" value="Отправить (кнопка 2)">
+    </p>
+</form>
+</body>
+</html>
