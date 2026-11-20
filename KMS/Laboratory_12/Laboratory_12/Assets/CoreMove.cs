@@ -48,7 +48,6 @@ public class CoreMove : MonoBehaviour
         GetComponent<Renderer>().enabled = false;
         GetComponent<Collider>().enabled = false;
 
-        // Запускаем звук разрыва, привязанный к AudioSource на цели (п. 9)
         AudioSource targetAudio = target.GetComponent<AudioSource>();
         if (targetAudio != null && targetAudio.clip != null)
         {

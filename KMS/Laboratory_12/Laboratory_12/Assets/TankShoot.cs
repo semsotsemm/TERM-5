@@ -13,7 +13,6 @@ public class TankShoot : MonoBehaviour
             Quaternion spawnRotation = transform.rotation * Quaternion.Euler(90f, 0f, 0f);
             Instantiate(corePrefab, spawnPosition, spawnRotation);
 
-            // Проигрываем звук выстрела, привязанный к AudioSource на стволе
             gameObject.GetComponent<AudioSource>().PlayOneShot(gameObject.GetComponent<AudioSource>().clip);
         }
     }
