@@ -152,16 +152,16 @@ namespace
 
 class CMainWindow : public CFrameWnd
 {
-protected:
-    afx_msg void OnPaint();
-    afx_msg BOOL OnEraseBkgnd(CDC* dc);
-    afx_msg void OnSize(UINT type, int width, int height);
-    afx_msg void OnGetMinMaxInfo(MINMAXINFO* info);
-    afx_msg void OnCamera();
-    afx_msg void OnLight();
-    afx_msg void OnLightColor();
-    afx_msg void OnPyramid();
-    DECLARE_MESSAGE_MAP()
+    protected:
+        afx_msg void OnPaint();
+        afx_msg BOOL OnEraseBkgnd(CDC* dc);
+        afx_msg void OnSize(UINT type, int width, int height);
+        afx_msg void OnGetMinMaxInfo(MINMAXINFO* info);
+        afx_msg void OnCamera();
+        afx_msg void OnLight();
+        afx_msg void OnLightColor();
+        afx_msg void OnPyramid();
+        DECLARE_MESSAGE_MAP()
 };
 
 BEGIN_MESSAGE_MAP(CMainWindow, CFrameWnd)
@@ -256,23 +256,23 @@ void CMainWindow::OnPyramid()
 
 class CLaboratory09App : public CWinApp
 {
-public:
-    BOOL InitInstance() override
-    {
-        CWinApp::InitInstance();
-        CMainWindow* window = new CMainWindow;
-        if (!window->Create(nullptr, L"Лабораторная работа 9", WS_OVERLAPPEDWINDOW,
-            CRect(100, 100, 1080, 840), nullptr, MAKEINTRESOURCEW(IDR_FIGURE_MENU)))
+    public:
+        BOOL InitInstance() override
         {
-            delete window;
-            return FALSE;
-        }
+            CWinApp::InitInstance();
+            CMainWindow* window = new CMainWindow;
+            if (!window->Create(nullptr, L"Лабораторная работа 9", WS_OVERLAPPEDWINDOW,
+                CRect(100, 100, 1080, 840), nullptr, MAKEINTRESOURCEW(IDR_FIGURE_MENU)))
+            {
+                delete window;
+                return FALSE;
+            }
 
-        m_pMainWnd = window;
-        window->ShowWindow(m_nCmdShow);
-        window->UpdateWindow();
-        return TRUE;
-    }
+            m_pMainWnd = window;
+            window->ShowWindow(m_nCmdShow);
+            window->UpdateWindow();
+            return TRUE;
+        }
 };
 
 CLaboratory09App application;
