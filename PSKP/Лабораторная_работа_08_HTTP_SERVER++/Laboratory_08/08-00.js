@@ -44,7 +44,8 @@ const server = http.createServer((req, res) => {
         if (parsed_url.pathname.startsWith("/files/")) {
             const filename = decodeURIComponent(parsed_url.pathname.slice("/files/".length));
 
-            if (!filename || filename.includes("/") || filename.includes("\\")) {
+            if (!filename || filename.includes("/") || filename.includes("\\"))
+            {
                 res.statusCode = 404;
                 res.setHeader("Content-Type", "text/plain; charset=utf-8");
                 res.end("File Not Found");
@@ -451,7 +452,8 @@ const server = http.createServer((req, res) => {
                     const targetPath = path.join(staticDir, originalName);
 
                     fs.rename(uploadedFile.path, targetPath, (renameErr) => {
-                        if (renameErr) {
+                        if (renameErr)
+                        {
                             res.statusCode = 500;
                             res.end("Ошибка сохранения файла");
                             return;
