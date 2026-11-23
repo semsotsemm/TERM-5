@@ -1,0 +1,30 @@
+INSERT INTO PRODUCTS (ID, ITEM_NAME, PRICE) 
+              VALUES (1, 'Дубликат', 100);
+SELECT * 
+    FROM "AUDIT";
+
+
+DROP TABLE PRODUCTS;
+FLASHBACK TABLE PRODUCTS TO BEFORE DROP;
+
+
+CREATE OR REPLACE TRIGGER TRG_PREVENT_DROP
+    BEFORE DROP 
+    ON SCHEMA
+        BEGIN
+            IF ORA_DICT_OBJ_TYPE = 'TABLE' AND ORA_DICT_OBJ_NAME = 'PRODUCTS' THEN
+                RAISE_APPLICATION_ERROR(-20001, 'Удаление таблицы PRODUCTS запрещено.');
+            END IF;
+        END;
+        /
+
+
+DROP TABLE PRODUCTS;
+
+
+DROP TABLE "AUDIT";
+SELECT trigger_name, status 
+    FROM user_triggers;
+    
+    
+FLASHBACK TABLE "AUDIT" TO BEFORE DROP;
