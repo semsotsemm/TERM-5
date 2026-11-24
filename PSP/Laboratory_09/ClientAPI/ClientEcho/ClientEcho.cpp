@@ -24,7 +24,6 @@ int main()
     }
 
     cout << "Соединение установлено! Введите текст (или 'exit' для выхода)." << endl;
-    cout << "[ТЕСТ ТАЙМАУТА]: Подождите 60 секунд ничего не вводя, чтобы проверить отключение сервером." << endl;
 
     string input;
     char buffer[1024];
@@ -32,11 +31,17 @@ int main()
     {
         getline(cin, input);
         if (input == "exit") break;
+        input += '\n';
 
         memset(buffer, 0, sizeof(buffer));
         if (client.RequestEcho(input.c_str(), input.length(), buffer))
         {
-            cout << "Ответ сервера: " << buffer << endl;
+            string ans(buffer);
+            if (ans.rfind("DATA ", 0) == 0)
+            {
+                ans = ans.substr(5);
+            }
+            cout << "Ответ сервера: " << ans << endl;
         }
         else
         {

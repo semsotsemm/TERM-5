@@ -3,6 +3,7 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="ClientAPI/ClientAPI.vcxproj" Id="c676e9a2-92f2-45e3-9e7d-eb96b63fa338" />
-  <Project Path="ClientEcho/ClientEcho.vcxproj" Id="2014281b-620c-45a4-af93-b783bc645f62" />
+  <Project Path="ClientEcho/ClientEcho.vcxproj" Id="e598d726-1083-482b-90c9-046be90d194b" />
+  <Project Path="ClientRand/ClientRand.vcxproj" Id="ab66947c-7d81-41e2-b1d0-004f0cb304d5" />
+  <Project Path="ClientTime/ClientTime.vcxproj" Id="c7e2d088-015f-453f-b287-eeb9c0f67432" />
 </Solution>

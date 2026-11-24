@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{c676e9a2-92f2-45e3-9e7d-eb96b63fa338}</ProjectGuid>
-    <RootNamespace>ClientAPI</RootNamespace>
+    <ProjectGuid>{ab66947c-7d81-41e2-b1d0-004f0cb304d5}</ProjectGuid>
+    <RootNamespace>ClientRand</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -140,9 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClientAPI.cpp" />
-    <ClCompile Include="ClientEcho.cpp" />
     <ClCompile Include="ClientRand.cpp" />
-    <ClCompile Include="ClientTime.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClientAPI.h" />

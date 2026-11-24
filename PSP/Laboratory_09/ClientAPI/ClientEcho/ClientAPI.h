@@ -1,5 +1,7 @@
 #pragma once
 #include <winsock2.h>
+#include <string>
+#include <cstdint>
 
 using namespace std;
 
@@ -17,7 +19,7 @@ class ConcurrentServer
 		~ConcurrentServer();
 
 		bool GetServer(int udp_port, const string& callstring);
-		bool Connect(const string& service_name);	
+		bool Connect(const string& service_name);
 		bool RequestEcho(const char* data, int size, char* buffer);
 		string RequestTime();
 		int32_t RequestRand();

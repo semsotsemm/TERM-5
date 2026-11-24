@@ -1,4 +1,4 @@
-﻿#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
 #pragma comment(lib, "Ws2_32.lib")
 
 #include "ClientAPI.h" 
@@ -64,9 +64,8 @@ bool ConcurrentServer::GetServer(int udp_port, const string& callstring)
     fd_set read_fds;
     FD_ZERO(&read_fds);
     FD_SET(udp_socket, &read_fds);
-    timeval timeout = { 2, 0 }; 
-    
-    // Массив сокетов, для проверки на запись, исключения
+    timeval timeout = { 2, 0 };
+
     if (select(0, &read_fds, NULL, NULL, &timeout) > 0)
     {
         char buffer[256] = {};
@@ -112,18 +111,34 @@ bool ConcurrentServer::Connect(const string& service_name)
         return false;
     }
 
+
+    string greeting;
+    char ch;
+    while (recv(tcp_socket, &ch, 1, 0) > 0)
+    {
+        if (ch == '\n') break;
+        greeting += ch;
+    }
+
+    if (greeting.find("MAIL CONNECTED") == string::npos)
+    {
+        Disconnect();
+        return false;
+    }
+
     string req = service_name + "\n";
     send(tcp_socket, req.c_str(), req.length(), 0);
-
-    char buffer[50] = {};
-    int bytes = recv(tcp_socket, buffer, sizeof(buffer) - 1, 0);
-    if (bytes > 0)
+    
+    string response;
+    while (recv(tcp_socket, &ch, 1, 0) > 0)
     {
-        string response(buffer);
-        if (response.find("OK\n") != string::npos || response.find("OK") != string::npos)
-        {
-            return true;
-        }
+        if (ch == '\n') break;
+        response += ch;
+    }
+
+    if (response.find("OK") != string::npos)
+    {
+        return true;
     }
 
     Disconnect();
@@ -145,16 +160,15 @@ bool ConcurrentServer::RequestEcho(const char* data, int size, char* buffer)
     }
 
     int received = 0;
-    while (received < size)
+    char ch;
+    while (recv(tcp_socket, &ch, 1, 0) > 0)
     {
-        int r = recv(tcp_socket, buffer + received, size - received, 0);
-        if (r <= 0)
-        {
-            return false;
-        }
-        received += r;
+        if (ch == '\n') break;
+        buffer[received++] = ch;
     }
-    return true;
+    buffer[received] = '\0';
+
+    return received > 0;
 }
 
 

@@ -1,4 +1,4 @@
-#include "ClientAPI.h"
+﻿#include "ClientAPI.h"
 #include <iostream>
 
 using namespace std;
@@ -11,7 +11,7 @@ int main()
     cout << "Поиск сервера..." << endl;
     if (!client.GetServer(2000, "FindServer")) return 1;
 
-    cout << "Тест 1: Запрос несуществующего сервиса 'badtime'..." << endl;
+    cout << "Запрос несуществующего сервиса badtime..." << endl;
     if (!client.Connect("badtime"))
     {
         cout << "Ожидаемый результат: Сервер отказал в доступе." << endl;
@@ -20,12 +20,19 @@ int main()
     client.Disconnect();
     if (!client.GetServer(2000, "FindServer")) return 1;
 
-    cout << "\nТест 2: Запрос корректного сервиса 'time'..." << endl;
+    cout << "\nЗапрос корректного сервиса time..." << endl;
     if (client.Connect("time"))
     {
         string time_str = client.RequestTime();
+        string ans(time_str);
+        if (ans.rfind("DATA ", 0) == 0)
+        {
+            ans = ans.substr(5);
+        }
         if (!time_str.empty())
-            cout << "Точное время на сервере: " << time_str << endl;
+        {
+            cout << "Точное время на сервере: " << ans << endl;
+        }
         else
             cout << "Ошибка получения данных." << endl;
     }

@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{2014281b-620c-45a4-af93-b783bc645f62}</ProjectGuid>
+    <ProjectGuid>{e598d726-1083-482b-90c9-046be90d194b}</ProjectGuid>
     <RootNamespace>ClientEcho</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -139,7 +139,11 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ClientAPI.cpp" />
     <ClCompile Include="ClientEcho.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClientAPI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
