@@ -644,6 +644,10 @@ int main(int argc, char* argv[])
         if (!SendLine(client_socket, request_cmd))
             throw SetErrorMessageText("Ошибка отправки кода запроса: ", WSAGetLastError());
         string answer = WaitForReply(client_socket, pending, status, deadline, "Ожидаем запуска сервиса.");
+        if (answer.rfind("ErrorSchedule ", 0) == 0)
+        {
+            throw string(answer.substr(14) + '\n');
+        }
         if (answer == "ErrorInquiry")
         {
             cout << "Сервер ответил ErrorInquiry: сервис '" << request_cmd << "' не существует.\n";

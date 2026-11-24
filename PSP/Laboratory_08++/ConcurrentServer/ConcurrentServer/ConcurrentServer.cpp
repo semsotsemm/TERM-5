@@ -8,6 +8,7 @@
 #include <mutex>
 #include <vector>
 #include <iostream>
+#include <sstream>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -52,6 +53,16 @@ enum TalkersCommand {
 };
 
 list<Contact> contacts;
+
+struct ServiceSchedule
+{
+    string service_name;
+    int start_minutes;
+    int end_minutes;
+};
+
+vector<ServiceSchedule> service_schedules;
+mutex schedule_mutex;
 
 // Имя сервиса и параметры
 typedef HANDLE(*SSS_Function)(const char*, LPVOID);
@@ -255,6 +266,118 @@ void LogMessage(const string& message)
     }
 
     cout.flush();
+}
+
+
+bool ParseScheduleTime(const string& text, int& minutes)
+{
+    if (text.size() != 5 || text[2] != ':')
+    {
+        return false;
+    }
+    for (int i = 0; i < 5; i++)
+    {
+        if (i != 2 && (text[i] < '0' || text[i] > '9'))
+        {
+            return false;
+        }
+    }
+    int hours = (text[0] - '0') * 10 + text[1] - '0';
+    int minute_part = (text[3] - '0') * 10 + text[4] - '0';
+    if (hours > 23 || minute_part > 59)
+    {
+        return false;
+    }
+    minutes = hours * 60 + minute_part;
+    return true;
+}
+
+
+string FormatScheduleTime(int minutes)
+{
+    int hours = minutes / 60;
+    int minute_part = minutes % 60;
+    return string(hours < 10 ? "0" : "") + to_string(hours) + ':' +
+        (minute_part < 10 ? "0" : "") + to_string(minute_part);
+}
+
+
+string SetServiceSchedule(istringstream& command_stream)
+{
+    ServiceSchedule schedule;
+    string start_time;
+    string end_time;
+    string extra_argument;
+    if (!(command_stream >> schedule.service_name >> start_time >> end_time) ||
+        command_stream >> extra_argument)
+    {
+        return "Формат: SCHEDULE <echo|time|rand> <HH:MM> <HH:MM>. Например: SCHEDULE echo 08:00 12:00.";
+    }
+    if (schedule.service_name != "echo" && schedule.service_name != "time" && schedule.service_name != "rand")
+    {
+        return "Неизвестный сервис. Доступны: echo, time, rand.";
+    }
+    if (!ParseScheduleTime(start_time, schedule.start_minutes) ||
+        !ParseScheduleTime(end_time, schedule.end_minutes))
+    {
+        return "Некорректное время. Используйте HH:MM: часы 00..23, минуты 00..59.";
+    }
+    if (schedule.start_minutes == schedule.end_minutes)
+    {
+        return "Начало и конец расписания должны отличаться.";
+    }
+
+    lock_guard<mutex> lock(schedule_mutex);
+    bool schedule_found = false;
+    for (auto& current_schedule : service_schedules)
+    {
+        if (current_schedule.service_name == schedule.service_name)
+        {
+            current_schedule = schedule;
+            schedule_found = true;
+            break;
+        }
+    }
+    if (!schedule_found)
+    {
+        service_schedules.push_back(schedule);
+    }
+    return "Расписание сервиса '" + schedule.service_name + "': с " + start_time + " до " + end_time +
+        " по местному времени сервера. Начало включено, конец не включён.";
+}
+
+
+bool IsServiceAvailable(const string& service_name, string& rejection_message)
+{
+    lock_guard<mutex> lock(schedule_mutex);
+    for (const auto& schedule : service_schedules)
+    {
+        if (schedule.service_name != service_name)
+        {
+            continue;
+        }
+
+        SYSTEMTIME current_time;
+        GetLocalTime(&current_time);
+        int current_minutes = current_time.wHour * 60 + current_time.wMinute;
+        bool allowed;
+        if (schedule.start_minutes < schedule.end_minutes)
+        {
+            allowed = current_minutes >= schedule.start_minutes && current_minutes < schedule.end_minutes;
+        }
+        else
+        {
+            allowed = current_minutes >= schedule.start_minutes || current_minutes < schedule.end_minutes;
+        }
+        if (!allowed)
+        {
+            rejection_message = "Сервис '" + service_name + "' недоступен по расписанию. Время сервера: " +
+                FormatScheduleTime(current_minutes) + ". Разрешено с " + FormatScheduleTime(schedule.start_minutes) +
+                " до " + FormatScheduleTime(schedule.end_minutes) + ".";
+        }
+        return allowed;
+    }
+    return true;
 }
 
 
@@ -680,6 +803,14 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
             
             DWORD timeout = 1000;
             setsockopt(contact.client_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
+
+            string rejection_message;
+            if (!IsServiceAvailable(contact.service_name, rejection_message))
+            {
+                SendLine(contact.client_socket, "ErrorSchedule " + rejection_message);
+                FinishWithoutService(contact, rejection_message);
+                continue;
+            }
             
             contact.h_service_thread = SSS(contact.service_name, &contact);
             if (contact.h_service_thread == NULL)
@@ -811,9 +942,17 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
 
             string input(buffer, bytes_read);
             string response;
+            istringstream command_stream(input);
+            string command_name;
+            command_stream >> command_name;
+            bool is_schedule = command_name == "SCHEDULE" || command_name == "schedule";
 
             TalkersCommand next = GETCOMMAND;
-            if (input == "start")
+            if (is_schedule)
+            {
+                response = SetServiceSchedule(command_stream);
+            }
+            else if (input == "start")
             {
                 next = START;
             }
@@ -864,7 +1003,7 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
 
                 response = input;
             }
-            else if (input == "statistics")
+            else if (input == "statistics" || is_schedule)
             {
                 LogMessage("[ConsolePipe] " + response);
             }
@@ -988,7 +1127,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) + " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME + " | Таймаут: " + to_string(SERVICE_TIMEOUT) + " сек." + "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit).\n" + "Клиенты: ClientT.exe [имя или IPv4] [TCP-порт]. Сервисы: echo, time, rand.");
+    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) + " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME + " | Таймаут: " + to_string(SERVICE_TIMEOUT) + " сек." + "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit, SCHEDULE <ServiceName> <HH:MM> <HH:MM>).\n" + "Клиенты: ClientT.exe [имя или IPv4] [TCP-порт]. Сервисы: echo, time, rand.");
    
     InitializeCriticalSection(&scListContact);
     
