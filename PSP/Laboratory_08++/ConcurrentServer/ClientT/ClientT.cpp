@@ -196,14 +196,19 @@ int GetNumber(const string& text, int minimum, int maximum)
     size_t end = 0;
     int value = stoi(text, &end);
     if (end != text.size() || value < minimum || value > maximum)
+    {
         throw string("Число должно быть в диапазоне " + to_string(minimum) + ".." + to_string(maximum) + ".\n");
+    }
     return value;
 }
 
 string FindServer(int udp_port, const string& callsign, int& tcp_port)
 {
     SOCKET udp_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (udp_socket == INVALID_SOCKET) throw SetErrorMessageText("Ошибка UDP socket: ", WSAGetLastError());
+    if (udp_socket == INVALID_SOCKET)
+    {
+        throw SetErrorMessageText("Ошибка UDP socket: ", WSAGetLastError());
+    }
     try
     {
         BOOL broadcast = TRUE;
@@ -211,8 +216,7 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
         DWORD returned = 0;
         u_long nonblk = 1;
         if (setsockopt(udp_socket, SOL_SOCKET, SO_BROADCAST, (const char*)&broadcast, sizeof(broadcast)) == SOCKET_ERROR ||
-            WSAIoctl(udp_socket, SIO_UDP_CONNRESET, &report_port_unreachable,
-                sizeof(report_port_unreachable), NULL, 0, &returned, NULL, NULL) == SOCKET_ERROR ||
+            WSAIoctl(udp_socket, SIO_UDP_CONNRESET, &report_port_unreachable,sizeof(report_port_unreachable), NULL, 0, &returned, NULL, NULL) == SOCKET_ERROR ||
             ioctlsocket(udp_socket, FIONBIO, &nonblk) == SOCKET_ERROR)
         {
             throw SetErrorMessageText("Ошибка настройки UDP-поиска: ", WSAGetLastError());
@@ -220,18 +224,29 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
 
         vector<u_long> destinations = { INADDR_BROADCAST, htonl(INADDR_LOOPBACK) };
         INTERFACE_INFO interfaces[64];
-        if (WSAIoctl(udp_socket, SIO_GET_INTERFACE_LIST, NULL, 0, interfaces,
-            sizeof(interfaces), &returned, NULL, NULL) != SOCKET_ERROR)
+        if (WSAIoctl(udp_socket, SIO_GET_INTERFACE_LIST, NULL, 0, interfaces, sizeof(interfaces), &returned, NULL, NULL) != SOCKET_ERROR)
         {
             for (DWORD i = 0; i < returned / sizeof(INTERFACE_INFO); i++)
             {
-                if ((interfaces[i].iiFlags & (IFF_UP | IFF_BROADCAST)) != (IFF_UP | IFF_BROADCAST)) continue;
+                if ((interfaces[i].iiFlags & (IFF_UP | IFF_BROADCAST)) != (IFF_UP | IFF_BROADCAST))
+                {
+                    continue;
+                }
+
                 u_long address = interfaces[i].iiAddress.AddressIn.sin_addr.s_addr;
                 u_long mask = interfaces[i].iiNetmask.AddressIn.sin_addr.s_addr;
-                if (mask == 0 || mask == INADDR_BROADCAST) continue;
+
+                if (mask == 0 || mask == INADDR_BROADCAST)
+                {
+                    continue;
+                }
+                
                 u_long subnet_broadcast = (address & mask) | ~mask;
+
                 if (find(destinations.begin(), destinations.end(), subnet_broadcast) == destinations.end())
+                {
                     destinations.push_back(subnet_broadcast);
+                }
             }
         }
 
@@ -250,12 +265,19 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
                 for (u_long destination : destinations)
                 {
                     address.sin_addr.s_addr = destination;
-                    if (sendto(udp_socket, callsign.c_str(), static_cast<int>(callsign.size()), 0,
-                        (sockaddr*)&address, sizeof(address)) != SOCKET_ERROR)
+                    if (sendto(udp_socket, callsign.c_str(), static_cast<int>(callsign.size()), 0, (sockaddr*)&address, sizeof(address)) != SOCKET_ERROR)
+                    {
                         sent = true;
-                    else send_error = WSAGetLastError();
+                    }
+                    else
+                    {
+                        send_error = WSAGetLastError();
+                    }
                 }
-                if (!sent) throw SetErrorMessageText("Ошибка отправки запросов поиска: ", send_error);
+                if (!sent)
+                {
+                    throw SetErrorMessageText("Ошибка отправки запросов поиска: ", send_error);
+                }
                 next_request = GetTickCount64() + 750;
             }
 
@@ -270,8 +292,15 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
                 if (answer.rfind(prefix, 0) == 0)
                 {
                     int found_port;
-                    try { found_port = GetNumber(answer.substr(prefix.size()), 1, 65535); }
-                    catch (...) { continue; }
+                    try 
+                    {
+                        found_port = GetNumber(answer.substr(prefix.size()), 1, 65535); 
+                    }
+                    catch (...) 
+                    {
+                        continue; 
+                    }
+
                     string server_ip = inet_ntoa(server_address.sin_addr);
                     tcp_port = found_port;
                     closesocket(udp_socket);
@@ -282,7 +311,9 @@ string FindServer(int udp_port, const string& callsign, int& tcp_port)
             {
                 int error = WSAGetLastError();
                 if (error != WSAEWOULDBLOCK && error != WSAEMSGSIZE)
+                {
                     throw SetErrorMessageText("Ошибка recvfrom: ", error);
+                }
             }
             Sleep(20);
         }
@@ -429,8 +460,14 @@ bool ReadServerLine(SOCKET socket, string& pending, string& line, long wait_ms)
     if (line.rfind(prefix, 0) == 0 && line != prefix + "DONE")
     {
         string reason = line.substr(prefix.size());
-        if (reason == "TIMEOUT") throw string("Письмо сервера: время вышло, соединение закрыто по таймауту.\n");
-        if (reason == "EXIT") throw string("Письмо сервера: соединение прервано командой exit.\n");
+        if (reason == "TIMEOUT")
+        {
+            throw string("Письмо сервера: время вышло, соединение закрыто по таймауту.\n");
+        }
+        if (reason == "EXIT")
+        {
+            throw string("Письмо сервера: соединение прервано командой exit.\n");
+        }
         throw string("Письмо сервера: соединение завершилось с ошибкой.\n");
     }
     return true;
@@ -444,9 +481,13 @@ string WaitForReply(SOCKET socket, string& pending, ConsoleStatus& status, ULONG
     {
         status.Show(deadline, hint, show_progress);
     } while (!ReadServerLine(socket, pending, reply, 100));
-    if (!show_progress) status.Clear();
+    if (!show_progress)
+    {
+        status.Clear();
+    }
     return reply;
 }
+
 
 
 void WaitForExchange(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLONG deadline, int delay, const string& progress)
@@ -474,7 +515,10 @@ string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLON
         cout << prompt << flush;
         if (GetFileType(input) != FILE_TYPE_PIPE)
         {
-            if (!getline(cin, value)) throw string("Ввод завершён.\n");
+            if (!getline(cin, value))
+            {
+                throw string("Ввод завершён.\n");
+            }
             return value;
         }
         while (true)
@@ -482,22 +526,37 @@ string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLON
             status.Show(deadline, "Ожидаем ввода.");
             string reply;
             if (ReadServerLine(socket, pending, reply, 25))
+            {
                 throw string("Сервер завершил соединение во время ввода.\n");
+            }
             DWORD available = 0;
             if (!PeekNamedPipe(input, NULL, 0, NULL, &available, NULL))
+            {
                 throw string("Ввод завершён.\n");
-            if (available == 0) continue;
+            }
+            if (available == 0)
+            {
+                continue;
+            }
             char symbol;
             DWORD read;
             if (!ReadFile(input, &symbol, 1, &read, NULL) || read != 1)
+            {
                 throw string("Ввод завершён.\n");
+            }
             if (symbol == '\n')
             {
                 status.Clear();
-                if (!value.empty() && value.back() == '\r') value.pop_back();
+                if (!value.empty() && value.back() == '\r')
+                {
+                    value.pop_back();
+                }
                 return value;
             }
-            if (value.size() >= 4096) throw string("Слишком длинная строка ввода.\n");
+            if (value.size() >= 4096)
+            {
+                throw string("Слишком длинная строка ввода.\n");
+            }
             value += symbol;
         }
     }
@@ -533,7 +592,10 @@ string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLON
         }
         if (key.wVirtualKeyCode == VK_BACK)
         {
-            if (!value.empty()) value.pop_back();
+            if (!value.empty())
+            {
+                value.pop_back();
+            }
         }
         else if (key.uChar.UnicodeChar >= L' ' && key.uChar.UnicodeChar <= L'~' && value.size() < 63)
         {
@@ -560,9 +622,7 @@ int main(int argc, char* argv[])
     int max_args = discover ? 5 : 4;
     if (argc > max_args || (argc > 1 && string(argv[1]) == "--help"))
     {
-        cout << "ClientT.exe [имя DNS или IPv4] [TCP-порт] [пауза между запросами, мс]\n"
-             << "По умолчанию: 127.0.0.1 2000 0\n"
-             << "ClientT.exe --discover [UDP-порт] [позывной] [пауза между запросами, мс]\n";
+        cout << "ClientT.exe [имя DNS или IPv4] [TCP-порт] [пауза между запросами, мс]\n" << "По умолчанию: 127.0.0.1 2000 0\n" << "ClientT.exe --discover [UDP-порт] [позывной] [пауза между запросами, мс]\n";
         return argc > max_args ? 1 : 0;
     }
     WSADATA wsa_data;
@@ -584,33 +644,52 @@ int main(int argc, char* argv[])
             int udp_port = argc > 2 ? GetNumber(argv[2], 1, 65535) : 2000;
             string callsign = argc > 3 ? argv[3] : "FindServer";
             server_ip = FindServer(udp_port, callsign, server_port);
-            if (argc > 4) delay = GetNumber(argv[4], 0, 120000);
+            if (argc > 4)
+            {
+                delay = GetNumber(argv[4], 0, 120000);
+            }
         }
         else
         {
-            if (argc > 1) server_ip = argv[1];
-            if (argc > 2) server_port = GetNumber(argv[2], 1, 65535);
-            if (argc > 3) delay = GetNumber(argv[3], 0, 120000);
+            if (argc > 1)
+            {
+                server_ip = argv[1];
+            }
+            if (argc > 2)
+            {
+                server_port = GetNumber(argv[2], 1, 65535);
+            }
+            if (argc > 3)
+            {
+                delay = GetNumber(argv[3], 0, 120000);
+            }
         }
         SOCKADDR_IN server_address = {};
         int resolve_error = ResolveServer(server_ip, server_port, server_address);
         if (resolve_error != 0)
+        {
             throw SetErrorMessageText("Не удалось разрешить имя " + server_ip + ": ", resolve_error);
+        }
         client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (client_socket == INVALID_SOCKET)
+        {
             throw SetErrorMessageText("Ошибка socket: ", WSAGetLastError());
+        }
         cout << "========== ClientT ==========\nПодключение к " << server_ip << ':' << server_port << "...\n";
         if (connect(client_socket, (sockaddr*)&server_address, sizeof(server_address)) == SOCKET_ERROR)
+        {
             throw SetErrorMessageText("Ошибка connect: ", WSAGetLastError());
+        }
         if (!EnableKeepAlive(client_socket))
+        {
             throw SetErrorMessageText("Ошибка настройки контроля соединения: ", WSAGetLastError());
+        }
         DWORD timeout = 2000;
         setsockopt(client_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout));
 
         ConsoleStatus status;
         string pending;
-        ULONGLONG deadline = GetDeadline(WaitForReply(client_socket, pending, status, 0,
-            "TCP-соединение установлено. Ожидаем приёма клиента."), "MAIL CONNECTED ");
+        ULONGLONG deadline = GetDeadline(WaitForReply(client_socket, pending, status, 0, "TCP-соединение установлено. Ожидаем приёма клиента."), "MAIL CONNECTED ");
         cout << "Письмо сервера: подключение принято.\n"
              << "  echo — возврат отправленных сообщений\n"
              << "  time — дата и время сервера\n"
@@ -642,7 +721,9 @@ int main(int argc, char* argv[])
             }
         }
         if (!SendLine(client_socket, request_cmd))
+        {
             throw SetErrorMessageText("Ошибка отправки кода запроса: ", WSAGetLastError());
+        }
         string answer = WaitForReply(client_socket, pending, status, deadline, "Ожидаем запуска сервиса.");
         if (answer.rfind("ErrorSchedule ", 0) == 0)
         {
@@ -663,20 +744,30 @@ int main(int argc, char* argv[])
             {
                 string message = request_cmd == "echo" ? "Hello from Client " + to_string(i) : request_cmd;
                 if (!SendLine(client_socket, message))
+                {
                     throw SetErrorMessageText("Ошибка отправки: ", WSAGetLastError());
+                }
                 answer = WaitForReply(client_socket, pending, status, deadline, progress, true);
                 if (answer.rfind("DATA ", 0) != 0)
+                {
                     throw string("Неожиданный ответ сервиса: " + answer + ".\n");
+                }
                 progress = '[' + to_string(i) + '/' + to_string(messages_count) + "] " + answer.substr(5);
                 if (!status.IsEnabled()) cout << progress << '\n' << flush;
                 if (delay > 0 && i < messages_count)
+                {
                     WaitForExchange(client_socket, pending, status, deadline, delay, progress);
+                }
             }
             if (!SendLine(client_socket, "stop"))
+            {
                 throw SetErrorMessageText("Ошибка завершения сервиса: ", WSAGetLastError());
+            }
             answer = WaitForReply(client_socket, pending, status, deadline, "Ожидаем письма об отключении.");
             if (answer != "MAIL DISCONNECTED DONE")
+            {
                 throw string("Сервер не подтвердил завершение обмена.\n");
+            }
             double seconds = chrono::duration<double>(chrono::steady_clock::now() - start_time).count();
             cout << "Письмо сервера: обслуживание завершено. Ответов: " << messages_count << ", " << seconds << " с.\n";
         }
@@ -691,7 +782,10 @@ int main(int argc, char* argv[])
         cerr << "[ClientT] Некорректные параметры командной строки. Подсказка: ClientT.exe --help\n";
         exit_code = 1;
     }
-    if (client_socket != INVALID_SOCKET) closesocket(client_socket);
+    if (client_socket != INVALID_SOCKET)
+    {
+        closesocket(client_socket);
+    }
     WSACleanup();
     cout << "Соединение закрыто.\n";
     return exit_code;

@@ -68,8 +68,7 @@ bool ReceiveServiceLine(Contact* contact, string& text)
 void PrintServiceEvent(Contact* contact, const char* event, const SYSTEMTIME& time)
 {
     char message[256];
-    sprintf_s(message, "[AcceptServer APC] %s '%s', %02u.%02u.%04u/%02u:%02u:%02u, клиент %s:%u",
-        event, contact->service_name, time.wDay, time.wMonth, time.wYear, time.wHour, time.wMinute, time.wSecond, inet_ntoa(contact->params.sin_addr), ntohs(contact->params.sin_port));
+    sprintf_s(message, "[AcceptServer APC] %s '%s', %02u.%02u.%04u/%02u:%02u:%02u, клиент %s:%u", event, contact->service_name, time.wDay, time.wMonth, time.wYear, time.wHour, time.wMinute, time.wSecond, inet_ntoa(contact->params.sin_addr), ntohs(contact->params.sin_port));
     contact->log_message(message);
 }
 
@@ -147,8 +146,7 @@ DWORD WINAPI TimeServer(LPVOID lp_param)
         time_t now = time(nullptr);
         tm local_time = {};
         char time_str[32];
-        if (localtime_s(&local_time, &now) != 0 || strftime(time_str, sizeof(time_str), "%d.%m.%Y/%H:%M:%S", &local_time) == 0 ||
-            !SendLine(contact->client_socket, "DATA " + string(time_str)))
+        if (localtime_s(&local_time, &now) != 0 || strftime(time_str, sizeof(time_str), "%d.%m.%Y/%H:%M:%S", &local_time) == 0 || !SendLine(contact->client_socket, "DATA " + string(time_str)))
         {
             break;
         }
@@ -184,14 +182,12 @@ DWORD WINAPI RandServer(LPVOID lp_param)
 }
 
 
-// Экспортируем функцию, отключая манглинг
 extern "C" __declspec(dllexport) HANDLE SSS(const char* id, LPVOID param)
 {
     for (const auto& service : TableService)
     {
         if (strcmp(service.IdRequest, id) == 0)
         {
-            // Атрибуты безопастности, стек по умолчанию, ..., ..., не исполнять без команды, куда записать tid
             return CreateThread(NULL, 0, service.service, param, CREATE_SUSPENDED, NULL);
         }
     }
@@ -199,7 +195,6 @@ extern "C" __declspec(dllexport) HANDLE SSS(const char* id, LPVOID param)
     return NULL;
 }
 
-// Адрес загрузки, причина вызова, резервный указатель
 BOOL APIENTRY DllMain(HMODULE, DWORD, LPVOID)
 {
     return TRUE;

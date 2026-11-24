@@ -45,10 +45,10 @@ volatile LONG stat_active_connections = 0;
 enum TalkersCommand {
     START,
     STOP,
-    EXIT,       // Экстренное завершение
+    EXIT,       
     STATISTICS,
-    WAIT,       // При новом клиенте
-    SHUTDOWN,   // Норм завершение
+    WAIT,       
+    SHUTDOWN,   
     GETCOMMAND
 };
 
@@ -64,7 +64,6 @@ struct ServiceSchedule
 vector<ServiceSchedule> service_schedules;
 mutex schedule_mutex;
 
-// Имя сервиса и параметры
 typedef HANDLE(*SSS_Function)(const char*, LPVOID);
 SSS_Function SSS = NULL;
 
@@ -256,7 +255,6 @@ void LogMessage(const string& message)
 {
     static mutex log_mutex;
 
-    // Автоматическая блокировка 
     lock_guard<mutex> lock(log_mutex);
 
     cout << message;
@@ -297,8 +295,7 @@ string FormatScheduleTime(int minutes)
 {
     int hours = minutes / 60;
     int minute_part = minutes % 60;
-    return string(hours < 10 ? "0" : "") + to_string(hours) + ':' +
-        (minute_part < 10 ? "0" : "") + to_string(minute_part);
+    return string(hours < 10 ? "0" : "") + to_string(hours) + ':' + (minute_part < 10 ? "0" : "") + to_string(minute_part);
 }
 
 
@@ -308,8 +305,7 @@ string SetServiceSchedule(istringstream& command_stream)
     string start_time;
     string end_time;
     string extra_argument;
-    if (!(command_stream >> schedule.service_name >> start_time >> end_time) ||
-        command_stream >> extra_argument)
+    if (!(command_stream >> schedule.service_name >> start_time >> end_time) || command_stream >> extra_argument)
     {
         return "Формат: SCHEDULE <echo|time|rand> <HH:MM> <HH:MM>. Например: SCHEDULE echo 08:00 12:00.";
     }
@@ -342,8 +338,7 @@ string SetServiceSchedule(istringstream& command_stream)
     {
         service_schedules.push_back(schedule);
     }
-    return "Расписание сервиса '" + schedule.service_name + "': с " + start_time + " до " + end_time +
-        " по местному времени сервера. Начало включено, конец не включён.";
+    return "Расписание сервиса '" + schedule.service_name + "': с " + start_time + " до " + end_time + " по местному времени сервера. Начало включено, конец не включён.";
 }
 
 
@@ -371,9 +366,7 @@ bool IsServiceAvailable(const string& service_name, string& rejection_message)
         }
         if (!allowed)
         {
-            rejection_message = "Сервис '" + service_name + "' недоступен по расписанию. Время сервера: " +
-                FormatScheduleTime(current_minutes) + ". Разрешено с " + FormatScheduleTime(schedule.start_minutes) +
-                " до " + FormatScheduleTime(schedule.end_minutes) + ".";
+            rejection_message = "Сервис '" + service_name + "' недоступен по расписанию. Время сервера: " + FormatScheduleTime(current_minutes) + ". Разрешено с " + FormatScheduleTime(schedule.start_minutes) +  " до " + FormatScheduleTime(schedule.end_minutes) + ".";
         }
         return allowed;
     }
@@ -390,11 +383,11 @@ string ClientAddress(const Contact& contact)
 string GetStatistics()
 {
     EnterCriticalSection(&scListContact);
-    string result = "statistics\nВсего подключений:   " + to_string(ReadCounter(stat_total_connections)) +
-        "\nОтказов/ошибок:      " + to_string(ReadCounter(stat_total_rejections)) +
-        "\nУспешно завершено:   " + to_string(ReadCounter(stat_successful_connections)) +
-        "\nЗавершено по таймауту: " + to_string(ReadCounter(stat_timeouts)) +
-        "\nАктивных клиентов:   " + to_string(ReadCounter(stat_active_connections));
+    string result = "statistics\nВсего подключений:   " + to_string(ReadCounter(stat_total_connections));
+    result += "\nОтказов/ошибок:      " + to_string(ReadCounter(stat_total_rejections));
+    result += "\nУспешно завершено:   " + to_string(ReadCounter(stat_successful_connections));
+    result += "\nЗавершено по таймауту: " + to_string(ReadCounter(stat_timeouts));
+    result += "\nАктивных клиентов:   " + to_string(ReadCounter(stat_active_connections));
     LeaveCriticalSection(&scListContact);
     return result;
 }
@@ -592,7 +585,6 @@ void CommandsCycle(atomic<TalkersCommand>& cmd, SOCKET server_socket)
     }
     LeaveCriticalSection(&scListContact);
     SetEvent(g_hAcceptEvent);
-    // AcceptServer остаётся alertable, пока уведомления DLL не будут выполнены.
     while (ReadCounter(stat_active_connections) > 0)
     {
         SleepEx(10, TRUE);
@@ -657,7 +649,6 @@ DWORD WINAPI GarbageCleaner(LPVOID lp_param)
         EnterCriticalSection(&scListContact);
         for (auto it = contacts.begin(); it != contacts.end(); )
         {
-            // Поток не создался или завершился
             bool thread_finished = it->h_service_thread == NULL || WaitForSingleObject(it->h_service_thread, 0) == WAIT_OBJECT_0;
             if (ReadCounter(it->status) == FINISHED && thread_finished && ReadCounter(it->pending_apc) == 0 && !it->timer_armed)
             {
@@ -722,8 +713,7 @@ VOID CALLBACK TimerAPCProc(LPVOID lp_arg, DWORD, DWORD)
     {
         if (InterlockedCompareExchange(&contact->finish_reason, TIMED_OUT, DONE) == DONE)
         {
-            LogMessage("[Таймер] Сервис '" + string(contact->service_name) + "', клиент " + ClientAddress(*contact)
-                + ": превышен лимит " + to_string(SERVICE_TIMEOUT) + " сек.");
+            LogMessage("[Таймер] Сервис '" + string(contact->service_name) + "', клиент " + ClientAddress(*contact) + ": превышен лимит " + to_string(SERVICE_TIMEOUT) + " сек.");
         }
     }
     LeaveCriticalSection(&scListContact);
@@ -735,7 +725,6 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
     atomic<TalkersCommand>* command = (atomic<TalkersCommand>*)lp_param;
     while (command->load() != EXIT || ReadCounter(stat_active_connections) > 0)
     {
-        // ..., таймаут в мс, флаг тревожного состояния
         WaitForSingleObjectEx(g_hAcceptEvent, 20, TRUE);
 
         EnterCriticalSection(&scListContact);
@@ -840,7 +829,6 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
             
             LARGE_INTEGER interval;
             interval.QuadPart = -10000000LL * SERVICE_TIMEOUT;
-            // ..., ..., сколько раз сработает, 
             if (!SetWaitableTimer(contact.h_timer, &interval, 0, TimerAPCProc, &contact, FALSE))
             {
                 if (contact.h_service_thread)
@@ -892,7 +880,7 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
     atomic<TalkersCommand>* command = (atomic<TalkersCommand>*)lp_param;
 
     DWORD open_mode = PIPE_ACCESS_DUPLEX;
-    DWORD pipe_mode = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_NOWAIT; // небл режим
+    DWORD pipe_mode = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_NOWAIT; 
     HANDLE h_pipe = CreateNamedPipeA(PIPE_NAME.c_str(), open_mode, pipe_mode, 1, 4096, 4096, 0, NULL);
     if (h_pipe == INVALID_HANDLE_VALUE)
     {
@@ -922,7 +910,6 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
         while (command->load() != EXIT)
         {
             DWORD available = 0;
-            // Проверяем что в поток что-то записано, без извлечения данных, available покажет сколько байт доступно для чтения
             if (!PeekNamedPipe(h_pipe, NULL, 0, NULL, &available, NULL))
             {
                 break;
@@ -986,7 +973,6 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
                 LogMessage("[ConsolePipe] Получена команда '" + input + "'.");
                 TalkersCommand expected = GETCOMMAND;
                 
-                // true если command = expected запись в next, иначе запись в expected
                 while (command->load() != EXIT && !command->compare_exchange_weak(expected, next))
                 {
                     expected = GETCOMMAND;
@@ -1018,7 +1004,6 @@ DWORD WINAPI ConsolePipe(LPVOID lp_param)
             }
             if (next == EXIT || next == SHUTDOWN)
             {
-                // Даём ClientNP прочитать ответ и закрыть свой конец канала.
                 ULONGLONG deadline = GetTickCount64() + 1000;
                 while (GetTickCount64() < deadline && PeekNamedPipe(h_pipe, NULL, 0, NULL, NULL, NULL))
                 {
@@ -1131,10 +1116,7 @@ int main(int argc, char* argv[])
    
     InitializeCriticalSection(&scListContact);
     
-    // Для синхронизации потоков, запуск всех потоков происходит после запуска accept server
-    // Права доступа, выключить автовыкл., начальное состояние, имя события
     g_hServerReady = CreateEvent(NULL, TRUE, FALSE, NULL);
-    // Ждем все серверы до приема клиентов
     g_hWorkersReady = CreateEvent(NULL, TRUE, FALSE, NULL);
     
     atomic<TalkersCommand> cmd_start(START);
@@ -1150,7 +1132,6 @@ int main(int argc, char* argv[])
 
     if (started)
     {
-        // Высший приоритет распределения процессорного времени
         SetThreadPriority(threads[0], THREAD_PRIORITY_HIGHEST);
         ResumeThread(threads[0]);
         WaitForSingleObject(g_hServerReady, INFINITE);
@@ -1186,12 +1167,10 @@ int main(int argc, char* argv[])
     {
         cmd_start.store(EXIT);
     }
-    
     if (g_hWorkersReady)
     {
         SetEvent(g_hWorkersReady);
     }
-    
     if (threads[0])
     {
         WaitForSingleObject(threads[0], INFINITE);
@@ -1212,29 +1191,22 @@ int main(int argc, char* argv[])
             CloseHandle(threads[i]);
         }
     }
-    
     if (g_hAcceptEvent)
     {
         CloseHandle(g_hAcceptEvent);
     }
-    
     if (g_hServerReady)
     {
         CloseHandle(g_hServerReady);
     }
-   
     if (g_hWorkersReady)
     {
         CloseHandle(g_hWorkersReady);
     }
     
     DeleteCriticalSection(&scListContact);
-    
     FreeLibrary(h_service_lib);
-    
     WSACleanup();
-    
     LogMessage("[main] Все потоки завершены. Библиотека отключена. Сервер остановлен.");
-    
     return started ? 0 : 1;
 }
