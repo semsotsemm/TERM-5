@@ -37,6 +37,7 @@ struct Contact
     bool timer_armed = false;
     int request_length = 0;
     ULONGLONG request_deadline = 0;
+    int service_timeout = 180;
     SYSTEMTIME start_time = {};
     SYSTEMTIME finish_time = {};
     void (*log_message)(const std::string&) = nullptr;

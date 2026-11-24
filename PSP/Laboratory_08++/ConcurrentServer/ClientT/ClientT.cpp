@@ -505,7 +505,18 @@ void WaitForExchange(SOCKET socket, string& pending, ConsoleStatus& status, ULON
 }
 
 
-string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLONG deadline, const string& prompt)
+void PrintBroadcastMessage(const string& reply, ConsoleStatus& status)
+{
+    if (reply.rfind("DATA ", 0) != 0)
+    {
+        throw string("Неожиданный ответ сервиса: " + reply + ".\n");
+    }
+    status.Clear();
+    cout << "Получено: " << reply.substr(5) << '\n' << flush;
+}
+
+
+string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLONG deadline, const string& prompt, bool receive_broadcast = false)
 {
     HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
     DWORD mode;
@@ -527,7 +538,11 @@ string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLON
             string reply;
             if (ReadServerLine(socket, pending, reply, 25))
             {
-                throw string("Сервер завершил соединение во время ввода.\n");
+                if (!receive_broadcast)
+                {
+                    throw string("Сервер завершил соединение во время ввода.\n");
+                }
+                PrintBroadcastMessage(reply, status);
             }
             DWORD available = 0;
             if (!PeekNamedPipe(input, NULL, 0, NULL, &available, NULL))
@@ -567,7 +582,11 @@ string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLON
         string reply;
         if (ReadServerLine(socket, pending, reply, 25))
         {
-            throw string("Сервер завершил соединение во время ввода.\n");
+            if (!receive_broadcast)
+            {
+                throw string("Сервер завершил соединение во время ввода.\n");
+            }
+            PrintBroadcastMessage(reply, status);
         }
         if (WaitForSingleObject(input, 0) != WAIT_OBJECT_0)
         {
@@ -594,7 +613,24 @@ string ReadInput(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLON
         {
             if (!value.empty())
             {
+                if (receive_broadcast)
+                {
+                    while (!value.empty() && (static_cast<unsigned char>(value.back()) & 0xC0) == 0x80)
+                    {
+                        value.pop_back();
+                    }
+                }
                 value.pop_back();
+            }
+        }
+        else if (receive_broadcast && key.uChar.UnicodeChar >= L' ')
+        {
+            char symbol[4];
+            int bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, &key.uChar.UnicodeChar, 1,
+                symbol, sizeof(symbol), NULL, NULL);
+            if (bytes > 0 && value.size() + bytes <= 4096)
+            {
+                value.append(symbol, bytes);
             }
         }
         else if (key.uChar.UnicodeChar >= L' ' && key.uChar.UnicodeChar <= L'~' && value.size() < 63)
@@ -612,6 +648,36 @@ ULONGLONG GetDeadline(const string& reply, const string& prefix)
         throw string("Неожиданный ответ сервера: " + reply + ".\n");
     }
     return GetTickCount64() + GetNumber(reply.substr(prefix.size()), 1, 86400) * 1000ULL;
+}
+
+
+void RunBroadcastEcho(SOCKET socket, string& pending, ConsoleStatus& status, ULONGLONG deadline)
+{
+    cout << "Сервис 'broadcast_echo' запущен. Сообщения получают остальные участники.\n"
+         << "Введите текст и нажмите Enter. Для завершения введите stop.\n" << flush;
+    while (true)
+    {
+        string message = ReadInput(socket, pending, status, deadline, "Сообщение> ", true);
+        if (!SendLine(socket, message))
+        {
+            throw SetErrorMessageText("Ошибка отправки: ", WSAGetLastError());
+        }
+        if (message == "stop")
+        {
+            break;
+        }
+    }
+
+    while (true)
+    {
+        string reply = WaitForReply(socket, pending, status, deadline, "Ожидаем письма об отключении.");
+        if (reply == "MAIL DISCONNECTED DONE")
+        {
+            break;
+        }
+        PrintBroadcastMessage(reply, status);
+    }
+    cout << "Письмо сервера: обслуживание завершено.\n";
 }
 
 
@@ -694,6 +760,7 @@ int main(int argc, char* argv[])
              << "  echo — возврат отправленных сообщений\n"
              << "  time — дата и время сервера\n"
              << "  rand — случайное 32-битное целое число\n"
+             << "  broadcast_echo — сообщения всем остальным участникам сервиса\n"
              << "Другой код — проверка ErrorInquiry.\n";
         string request_cmd;
         while (true)
@@ -733,6 +800,11 @@ int main(int argc, char* argv[])
         {
             cout << "Сервер ответил ErrorInquiry: сервис '" << request_cmd << "' не существует.\n";
             WaitForReply(client_socket, pending, status, deadline, "Ожидаем письма об отключении.");
+        }
+        else if (request_cmd == "broadcast_echo")
+        {
+            deadline = GetDeadline(answer, "OK ");
+            RunBroadcastEcho(client_socket, pending, status, deadline);
         }
         else
         {

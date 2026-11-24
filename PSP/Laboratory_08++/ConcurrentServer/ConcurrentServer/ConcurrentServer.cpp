@@ -307,11 +307,12 @@ string SetServiceSchedule(istringstream& command_stream)
     string extra_argument;
     if (!(command_stream >> schedule.service_name >> start_time >> end_time) || command_stream >> extra_argument)
     {
-        return "Формат: SCHEDULE <echo|time|rand> <HH:MM> <HH:MM>. Например: SCHEDULE echo 08:00 12:00.";
+        return "Формат: SCHEDULE <echo|time|rand|broadcast_echo> <HH:MM> <HH:MM>. Например: SCHEDULE echo 08:00 12:00.";
     }
-    if (schedule.service_name != "echo" && schedule.service_name != "time" && schedule.service_name != "rand")
+    if (schedule.service_name != "echo" && schedule.service_name != "time" &&
+        schedule.service_name != "rand" && schedule.service_name != "broadcast_echo")
     {
-        return "Неизвестный сервис. Доступны: echo, time, rand.";
+        return "Неизвестный сервис. Доступны: echo, time, rand, broadcast_echo.";
     }
     if (!ParseScheduleTime(start_time, schedule.start_minutes) ||
         !ParseScheduleTime(end_time, schedule.end_minutes))
@@ -801,6 +802,7 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
                 continue;
             }
             
+            contact.service_timeout = SERVICE_TIMEOUT;
             contact.h_service_thread = SSS(contact.service_name, &contact);
             if (contact.h_service_thread == NULL)
             {
@@ -842,7 +844,8 @@ DWORD WINAPI DispatchServer(LPVOID lp_param)
 
             contact.timer_armed = true;
             SetThreadPriority(contact.h_service_thread, THREAD_PRIORITY_NORMAL);
-            if (!SendLine(contact.client_socket, "OK " + to_string(SERVICE_TIMEOUT)))
+            if (strcmp(contact.service_name, "broadcast_echo") != 0 &&
+                !SendLine(contact.client_socket, "OK " + to_string(SERVICE_TIMEOUT)))
             {
                 InterlockedCompareExchange(&contact.finish_reason, FAILED, DONE);
             }
@@ -1112,7 +1115,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) + " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME + " | Таймаут: " + to_string(SERVICE_TIMEOUT) + " сек." + "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit, SCHEDULE <ServiceName> <HH:MM> <HH:MM>).\n" + "Клиенты: ClientT.exe [имя или IPv4] [TCP-порт]. Сервисы: echo, time, rand.");
+    LogMessage("========== ConcurrentServer ==========\nTCP: " + to_string(PORT) + " | UDP: " + to_string(UDP_PORT) + " | DLL: " + DLL_NAME + " | Таймаут: " + to_string(SERVICE_TIMEOUT) + " сек." + "\nУправление: ClientNP.exe (start, stop, wait, shutdown, statistics, exit, SCHEDULE <ServiceName> <HH:MM> <HH:MM>).\n" + "Клиенты: ClientT.exe [имя или IPv4] [TCP-порт]. Сервисы: echo, time, rand, broadcast_echo.");
    
     InitializeCriticalSection(&scListContact);
     

@@ -5,6 +5,8 @@
 #include <random>
 #include <cstdint>
 #include <cstdio>
+#include <list>
+#include <mutex>
 #include "../ServerCommon.h"
 
 #ifndef NOMINMAX
@@ -28,11 +30,16 @@ struct ServiceList
 DWORD WINAPI EchoServer(LPVOID lp_param);
 DWORD WINAPI TimeServer(LPVOID lp_param);
 DWORD WINAPI RandServer(LPVOID lp_param);
+DWORD WINAPI BroadcastEchoServer(LPVOID lp_param);
+
+list<Contact*> broadcast_clients;
+mutex broadcast_mutex;
 
 ServiceList TableService[] = {
     { "echo", EchoServer },
     { "time", TimeServer },
-    { "rand", RandServer }
+    { "rand", RandServer },
+    { "broadcast_echo", BroadcastEchoServer }
 };
 
 
@@ -176,6 +183,52 @@ DWORD WINAPI RandServer(LPVOID lp_param)
     catch (...)
     {
         contact->log_message("[RandServer] Не удалось сформировать случайное число.");
+    }
+    FinishService(contact, request != "stop");
+    return 0;
+}
+
+
+DWORD WINAPI BroadcastEchoServer(LPVOID lp_param)
+{
+    Contact* contact = (Contact*)lp_param;
+    StartService(contact);
+    bool connected = false;
+    {
+        lock_guard<mutex> lock(broadcast_mutex);
+        if (ReadCounter(contact->finish_reason) == DONE &&
+            SendLine(contact->client_socket, "OK " + to_string(contact->service_timeout)))
+        {
+            broadcast_clients.push_back(contact);
+            connected = true;
+        }
+    }
+
+    string request;
+    while (connected && ReceiveServiceLine(contact, request))
+    {
+        if (request == "stop")
+        {
+            break;
+        }
+
+        lock_guard<mutex> lock(broadcast_mutex);
+        for (Contact* recipient : broadcast_clients)
+        {
+            if (recipient == contact || ReadCounter(recipient->finish_reason) != DONE)
+            {
+                continue;
+            }
+            if (!SendLine(recipient->client_socket, "DATA " + request))
+            {
+                InterlockedCompareExchange(&recipient->finish_reason, FAILED, DONE);
+            }
+        }
+    }
+
+    {
+        lock_guard<mutex> lock(broadcast_mutex);
+        broadcast_clients.remove(contact);
     }
     FinishService(contact, request != "stop");
     return 0;
