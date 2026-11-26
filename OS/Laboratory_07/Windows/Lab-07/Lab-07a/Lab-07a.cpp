@@ -31,7 +31,7 @@ int main()
     }
 
     char sign = (total_minutes >= 0) ? '+' : '-';
-    // abs из c  :(
+    
     int abs_minutes = (total_minutes >= 0) ? total_minutes : -total_minutes;
     int hour_offset = abs_minutes / 60;
     int min_offset = abs_minutes % 60;

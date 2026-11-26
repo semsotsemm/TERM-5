@@ -89,8 +89,8 @@ int main(int argc, char* argv[])
 	string printed_line(50, '=');
 	cout << '\n' << printed_line << '\n';
 	cout << "Время работы: " << int((GetTickCount() - start_time) / 1000) << "." << (GetTickCount() - start_time) % 1000 << "c.\n"; 
-	cout << "Всего обработано чисел:" << simple_numbers[simple_numbers.size() - 1] << '\n';
-	cout << "Найдено простых чисел" << simple_numbers.size() << '\n';
+	cout << "Всего обработано чисел: " << simple_numbers[simple_numbers.size() - 1] << '\n';
+	cout << "Найдено простых чисел: " << simple_numbers.size() << '\n';
 	cout << printed_line << '\n';
 
 
