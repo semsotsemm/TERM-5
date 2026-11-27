@@ -13,6 +13,7 @@ const request = http.request(options, (res) => {
     console.log("Адрес сервера: " + res.socket.remoteAddress);
     console.log("Порт сервера: " + res.socket.remotePort);
 
+    res.setEncoding("utf-8");
     let data = "";
 
     res.on("data", (chunk) => {

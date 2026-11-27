@@ -13,10 +13,11 @@ const request = http.request(options, (res) => {
     console.log("Статус код: ", res.statusCode);
     console.log("Пояснение к коду состояния: ", res.statusMessage);
 
+    res.setEncoding("utf-8");
     let data = "";
 
     res.on("data", chunk => {
-       data += chunk.toString();
+        data += chunk.toString();
     });
 
     res.on("end", () => {
@@ -25,7 +26,7 @@ const request = http.request(options, (res) => {
 });
 
 request.on("error", (err) => {
-   console.error("Ошибка: ", err.message)
+    console.error("Ошибка: ", err.message)
 });
 
 request.end();
