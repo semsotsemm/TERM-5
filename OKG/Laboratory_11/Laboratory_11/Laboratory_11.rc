@@ -1,0 +1,12 @@
+#pragma code_page(65001)
+#include <windows.h>
+#include "resource.h"
+
+IDR_LINES_MENU MENU
+BEGIN
+    POPUP "&Lines"
+    BEGIN
+        MENUITEM "&Lagr", IDM_LAGRANGE
+        MENUITEM "&Bezier", IDM_BEZIER
+    END
+END
