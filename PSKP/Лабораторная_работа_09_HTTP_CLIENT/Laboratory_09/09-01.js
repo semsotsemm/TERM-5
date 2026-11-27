@@ -1,33 +1,31 @@
 const http = require("http");
 
 const options = {
-    host: "127.0.0.1",
+    host: "localhost",
+    path: "/",
     port: 5000,
-    path: "/01",
-    method: "GET"
+    method: "GET",
 };
 
-const req = http.request(options, (res) => {
-    const remoteIp = res.socket.remoteAddress;
-    const remotePort = res.socket.remotePort;
+const request = http.request(options, (res) => {
+    console.log("Статус код: " + res.statusCode);
+    console.log("Пояснение к коду состояния: " + res.statusMessage);
+    console.log("Адрес сервера: " + res.socket.remoteAddress);
+    console.log("Порт сервера: " + res.socket.remotePort);
 
-    console.log(`Статус ответа: ${res.statusCode}`);
-    console.log(`Сообщение к статусу: ${res.statusMessage}`);
-    console.log(`IP-адрес сервера: ${remoteIp}`);
-    console.log(`Порт сервера: ${remotePort}`);
+    let data = "";
 
-    let body = "";
     res.on("data", (chunk) => {
-        body += chunk.toString();
+       data += chunk.toString("utf-8");
     });
 
     res.on("end", () => {
-        console.log(`Тело ответа: ${body}`);
+       console.log("Тело ответа: " + data);
     });
 });
 
-req.on("error", (err) => {
-    console.error(`Ошибка запроса: ${err.message}`);
+request.on("error", (err) => {
+    console.error("Ошибка запроса: " + err.message);
 });
 
-req.end();
+request.end();

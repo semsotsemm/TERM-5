@@ -1,32 +1,31 @@
 const http = require("http");
 
-const params = new URLSearchParams({
-    x: 10,
-    y: 5
-});
+const parameters = new URLSearchParams({x: 10, y: 20});
 
 const options = {
-    host: "127.0.0.1",
+    host : "localhost",
+    path: `/?${parameters.toString()}`,
     port: 5000,
-    path: `/02?${params.toString()}`,
-    method: "GET"
+    method: "GET",
 };
 
-const req = http.request(options, (res) => {
-    console.log(`Статус ответа: ${res.statusCode}`);
+const request = http.request(options, (res) => {
+    console.log("Статус код: ", res.statusCode);
+    console.log("Пояснение к коду состояния: ", res.statusMessage);
 
-    let body = "";
-    res.on("data", (chunk) => {
-        body += chunk.toString();
+    let data = "";
+
+    res.on("data", chunk => {
+       data += chunk.toString();
     });
 
     res.on("end", () => {
-        console.log(`Тело ответа:\n${body}`);
+        console.log(`Ответ сервера: ${data}`)
     });
 });
 
-req.on("error", (err) => {
-    console.error(`Ошибка запроса: ${err.message}`);
+request.on("error", (err) => {
+   console.error("Ошибка: ", err.message)
 });
 
-req.end();
+request.end();
