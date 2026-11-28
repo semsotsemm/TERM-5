@@ -18,7 +18,8 @@ const options = {
 const request = http.request(options, (res) => {
     console.log("Статус код:", res.statusCode);
 
-    if (res.statusCode !== 200) {
+    if (res.statusCode !== 200)
+    {
         res.setEncoding("utf-8");
         let errorBody = "";
         res.on("data", (chunk) => {
@@ -38,9 +39,11 @@ const request = http.request(options, (res) => {
     const writeStream = fs.createWriteStream(savePath);
 
     pipeline(res, writeStream, (err) => {
-        if (err) {
+        if (err)
+        {
             fs.rm(savePath, { force: true }, (removeError) => {
-                if (removeError) {
+                if (removeError)
+                {
                     console.error("Ошибка удаления неполного файла:", removeError.message);
                 }
                 console.error("Ошибка скачивания файла:", err.message);

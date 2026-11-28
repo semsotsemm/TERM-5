@@ -8,8 +8,7 @@ const body = `
     <m value="a"/>
     <m value="b"/>
     <m value="c"/>
-</request>
-`.trim();
+</request>`;
 
 const options = {
     host: "localhost",
@@ -34,12 +33,15 @@ const request = http.request(options, (res) => {
     });
 
     res.on("end", async () => {
-        console.log("Ответ сервера (XML):\n" + data);
+        console.log("Ответ сервера:\n" + data);
 
-        try {
+        try
+        {
             const parsed = await parseStringPromise(data);
             console.log("Распарсенный ответ:", JSON.stringify(parsed, null, 2));
-        } catch (err) {
+        }
+        catch (err)
+        {
             console.error("Ошибка парсинга XML:", err.message);
         }
     });

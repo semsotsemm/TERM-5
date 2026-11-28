@@ -34,10 +34,13 @@ const request = http.request(options, (res) => {
     });
 
     res.on("end", () => {
-        try {
+        try
+        {
             const parsed = JSON.parse(data);
-            console.log("Ответ сервера (JSON):", parsed);
-        } catch (err) {
+            console.log("Ответ сервера:", parsed);
+        }
+        catch (err)
+        {
             console.error("Ошибка парсинга JSON:", err.message);
             console.log("Сырой ответ:", data);
         }

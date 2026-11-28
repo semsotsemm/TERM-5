@@ -86,7 +86,9 @@ const server = http.createServer((req, res) => {
                         if (!res.headersSent) {
                             res.statusCode = 500;
                             res.end("Internal Server Error");
-                        } else {
+                        }
+                        else
+                        {
                             res.destroy();
                         }
                     });
