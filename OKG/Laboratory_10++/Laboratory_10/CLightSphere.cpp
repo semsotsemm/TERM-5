@@ -62,8 +62,7 @@ namespace
         return (red << 16) | (green << 8) | blue;
     }
 
-    double GetLightIntensity(const Point3D& point, const Point3D& normal,
-        const Point3D& light, const Point3D& camera, int model_index)
+    double GetLightIntensity(const Point3D& point, const Point3D& normal, const Point3D& light, const Point3D& camera, int model_index)
     {
         const Point3D light_direction = DirectionTo(point, light);
         const double diffuse = std::clamp(DotProduct(normal, light_direction), 0.0, 1.0);
@@ -85,8 +84,7 @@ namespace
     }
 }
 
-CLightSphere::CLightSphere()
-    : radius(2.0), camera_position(3), light_position(3), light_color(RGB(255, 255, 0))
+CLightSphere::CLightSphere() : radius(2.0), camera_position(3), light_position(3), light_color(RGB(255, 255, 0))
 {
     camera_position(0) = 15.0;
     camera_position(1) = 30.0;
@@ -218,8 +216,7 @@ void DrawLightSphere(CDC& dc, double radius, CMatrix& camera_position,
         const int ring_size = is_pole ? 1 : phi_count;
         for (int phi_index = 0; phi_index < ring_size; phi_index++)
         {
-            const Point3D normal = SphericalToCartesian(1.0, phi_sines[phi_index], phi_cosines[phi_index],
-                theta_sine, theta_cosine);
+            const Point3D normal = SphericalToCartesian(1.0, phi_sines[phi_index], phi_cosines[phi_index], theta_sine, theta_cosine);
             const double depth = DotProduct(normal, camera_axis);
             if (depth < 0.0)
             {
